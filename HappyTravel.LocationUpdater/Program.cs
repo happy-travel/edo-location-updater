@@ -1,8 +1,10 @@
 ﻿using System.Threading.Tasks;
 using HappyTravel.SentryLogger.Extensions;
+using HappyTravel.StdOutLogger.Extensions;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace HappyTravel.LocationUpdater
@@ -31,17 +33,23 @@ namespace HappyTravel.LocationUpdater
                 .ConfigureLogging((hostingContext, logging) =>
                 {
                     logging.ClearProviders()
-                        .AddConfiguration(hostingContext.Configuration.GetSection("Logging"))
-                        .AddSentry(c =>
-                        {
-                            c.Endpoint = hostingContext.Configuration["Logging:Sentry:Endpoint"];
-                        });
+                        .AddConfiguration(hostingContext.Configuration.GetSection("Logging"));
+
+                    logging.AddStdOut();
 
                     var env = hostingContext.HostingEnvironment;
                     if (env.IsDevelopment())
+                    {
                         logging.AddConsole();
+                    }
                     else
-                        logging.AddEventSourceLogger();
+                    {
+                        logging.AddEventSourceLogger()
+                            .AddSentry(c =>
+                            {
+                                c.Endpoint = hostingContext.Configuration["Logging:Sentry:Endpoint"];
+                            });;
+                    }
                 });
     }
 }
