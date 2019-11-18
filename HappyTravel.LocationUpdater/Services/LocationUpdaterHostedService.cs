@@ -14,9 +14,10 @@ namespace HappyTravel.LocationUpdater.Services
 {
     public class LocationUpdaterHostedService : IHostedService
     {
-        public LocationUpdaterHostedService(IHttpClientFactory clientFactory)
+        public LocationUpdaterHostedService(IHttpClientFactory clientFactory, IHostApplicationLifetime applicationLifetime)
         {
             _clientFactory = clientFactory;
+            _applicationLifetime = applicationLifetime;
 
             _serializer = new JsonSerializer();
         }
@@ -40,6 +41,8 @@ namespace HappyTravel.LocationUpdater.Services
                 locations = _serializer.Deserialize<List<Location>>(jsonTextReader);
 
             await ProcessLocations(locations);
+            
+            _applicationLifetime.StopApplication();
         }
 
 
@@ -102,6 +105,7 @@ namespace HappyTravel.LocationUpdater.Services
         private const int DefaultSearchDistanceForCountry = 200_000;
         
         private readonly IHttpClientFactory _clientFactory;
+        private readonly IHostApplicationLifetime _applicationLifetime;
         private readonly JsonSerializer _serializer;
     }
 }
