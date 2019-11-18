@@ -9,13 +9,12 @@ using HappyTravel.LocationUpdater.Models;
 using HappyTravel.LocationUpdater.Models.Enums;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 
 namespace HappyTravel.LocationUpdater.Services
 {
-    public class Host : IHostedService
+    public class LocationUpdaterHostedService : IHostedService
     {
-        public Host(IHttpClientFactory clientFactory)
+        public LocationUpdaterHostedService(IHttpClientFactory clientFactory)
         {
             _clientFactory = clientFactory;
 
@@ -33,8 +32,8 @@ namespace HappyTravel.LocationUpdater.Services
         {
             List<Location> locations;
 
-            using (var client = _clientFactory.CreateClient())
-            using (var response = await client.GetAsync("https://netstormingconnector-api.dev.happytravel.com/api/1.0/locations"))
+            using (var client = _clientFactory.CreateClient(HttpClientNames.NetstormingConnector))
+            using (var response = await client.GetAsync("/api/1.0/locations"))
             using (var stream = await response.Content.ReadAsStreamAsync())
             using (var streamReader = new StreamReader(stream))
             using (var jsonTextReader = new JsonTextReader(streamReader))
@@ -67,7 +66,7 @@ namespace HappyTravel.LocationUpdater.Services
                     case LocationTypes.Destination:
                         processedLocations.Add(new Location(location, DefaultSearchDistanceForDestinations, PredictionSources.NetstormingConnector));
                         break;
-                    case LocationTypes.Hotel:
+                    case LocationTypes.Accommodation:
                         processedLocations.Add(new Location(location, DefaultSearchDistanceForHotels, PredictionSources.NetstormingConnector));
                         break;
                     case LocationTypes.Landmark:
@@ -88,8 +87,8 @@ namespace HappyTravel.LocationUpdater.Services
         private async Task UploadLocations(List<Location> locations)
         {
             var json = JsonConvert.SerializeObject(locations);
-            using (var client = _clientFactory.CreateClient())
-            using (var _ = await client.PostAsync("http://localhost:5000/api/1.0/locations/" + PredictionSources.NetstormingConnector,
+            using (var client = _clientFactory.CreateClient(HttpClientNames.EdoApi))
+            using (var _ = await client.PostAsync("/api/1.0/locations/" + PredictionSources.NetstormingConnector,
                 new StringContent(json, Encoding.UTF8, "application/json")))
             { }
         }
