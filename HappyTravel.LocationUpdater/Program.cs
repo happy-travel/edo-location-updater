@@ -48,7 +48,7 @@ namespace HappyTravel.LocationUpdater
                             .AddSentry(c =>
                             {
                                 c.Endpoint = hostingContext.Configuration["Logging:Sentry:Endpoint"];
-                            });;
+                            });
                     }
                 });
     }
