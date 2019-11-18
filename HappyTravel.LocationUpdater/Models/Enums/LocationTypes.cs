@@ -8,7 +8,7 @@ namespace HappyTravel.LocationUpdater.Models.Enums
     {
         Unknown = 0,
         Destination = 1,
-        Hotel = 2,
+        Accommodation = 2,
         Landmark = 3,
         Location = 4
     }
