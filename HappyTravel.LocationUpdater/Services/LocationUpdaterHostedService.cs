@@ -34,7 +34,7 @@ namespace HappyTravel.LocationUpdater.Services
             List<Location> locations;
 
             using (var client = _clientFactory.CreateClient(HttpClientNames.NetstormingConnector))
-            using (var response = await client.GetAsync("/api/1.0/locations"))
+            using (var response = await client.GetAsync($"/api/1.0/locations/{DateTime.MinValue:O}"))
             using (var stream = await response.Content.ReadAsStreamAsync())
             using (var streamReader = new StreamReader(stream))
             using (var jsonTextReader = new JsonTextReader(streamReader))

@@ -10,7 +10,7 @@ namespace HappyTravel.LocationUpdater.Models.Enums
         [EnumMember(Value = "geocoder")]
         Google,
 
-        [EnumMember(Value = "netstorming-connector")]
+        [EnumMember(Value = "interior")]
         NetstormingConnector
     }
 }
