@@ -91,26 +91,28 @@ namespace HappyTravel.LocationUpdater.Services
 
         private async Task UploadLocations(List<Location> locations)
         {
-            using var client = _clientFactory.CreateClient(HttpClientNames.EdoApi);
-
-            foreach (var batch in ListHelper.SplitList(locations, _options.BatchSize))
+            using (var client = _clientFactory.CreateClient(HttpClientNames.EdoApi))
             {
-                await Task.Delay(_options.UploadRequestDelay);
-
-                var json = JsonConvert.SerializeObject(batch);
-                using var response = await client.PostAsync(UploadLocationsRequestPath,
-                    new StringContent(json, Encoding.UTF8, "application/json"));
-
-                if (!response.IsSuccessStatusCode)
+                foreach (var batch in ListHelper.SplitList(locations, _options.BatchSize))
                 {
-                    var error =
-                        $"Failed to upload {batch.Count} locations from {client.BaseAddress}{UploadLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
-                    _logger.LogError(LoggerEvents.UploadLocationsRequestFailure, error);
-                    throw new HttpRequestException(error);
-                }
+                    await Task.Delay(_options.UploadRequestDelay);
 
-                _logger.LogInformation(LoggerEvents.UploadLocationsRequestSuccess,
-                    $"Uploading {batch.Count} locations to {client.BaseAddress}{UploadLocationsRequestPath} completed successfully");
+                    var json = JsonConvert.SerializeObject(batch);
+                    using (var response = await client.PostAsync(UploadLocationsRequestPath,
+                        new StringContent(json, Encoding.UTF8, "application/json")))
+                    {
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            var error =
+                                $"Failed to upload {batch.Count} locations from {client.BaseAddress}{UploadLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
+                            _logger.LogError(LoggerEvents.UploadLocationsRequestFailure, error);
+                            throw new HttpRequestException(error);
+                        }
+
+                        _logger.LogInformation(LoggerEvents.UploadLocationsRequestSuccess,
+                            $"Uploading {batch.Count} locations to {client.BaseAddress}{UploadLocationsRequestPath} completed successfully");
+                    }
+                }
             }
         }
         
