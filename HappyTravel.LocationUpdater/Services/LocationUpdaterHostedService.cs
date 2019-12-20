@@ -112,7 +112,7 @@ namespace HappyTravel.LocationUpdater.Services
             }
         }
         
-        private const string GetLocationsRequestPath = "/locations";
+        private const string GetLocationsRequestPath = "locations";
         private const string UploadLocationsRequestPath = "/en/api/1.0/locations";
         private readonly IHostApplicationLifetime _applicationLifetime;
 
