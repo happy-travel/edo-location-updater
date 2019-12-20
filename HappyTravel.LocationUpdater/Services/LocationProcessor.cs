@@ -17,8 +17,8 @@ namespace HappyTravel.LocationUpdater.Services
         public static List<Location> ProcessLocations(List<Location> locations)
         {
             var processedLocations = new List<Location>(locations.Count);
-            for (var i = 0; i < locations.Count; i++)
-                processedLocations[i] = ProcessLocation(locations[i]);
+            for (var i = 0; i < locations.Count - 1; i++)
+                processedLocations.Add(ProcessLocation(locations[i]));
 
             return processedLocations;
         }

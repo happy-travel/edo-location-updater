@@ -72,13 +72,13 @@ namespace HappyTravel.LocationUpdater.Services
             if (!response.IsSuccessStatusCode)
             {
                 var error =
-                    $"Failed to get locations from {client.BaseAddress}/{GetLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
+                    $"Failed to get locations from {client.BaseAddress}{GetLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
                 _logger.LogError(LoggerEvents.GetLocationsRequestFailure, error);
                 throw new HttpRequestException(error);
             }
 
             _logger.LogInformation(LoggerEvents.GetLocationsRequestSuccess,
-                $"Locations from {client.BaseAddress}/{GetLocationsRequestPath} loaded successfully");
+                $"Locations from {client.BaseAddress}{GetLocationsRequestPath} loaded successfully");
 
             await using var stream = await response.Content.ReadAsStreamAsync();
             using var streamReader = new StreamReader(stream);
@@ -102,13 +102,13 @@ namespace HappyTravel.LocationUpdater.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     var error =
-                        $"Failed to upload {batch.Count} locations from {client.BaseAddress}/{GetLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
+                        $"Failed to upload {batch.Count} locations from {client.BaseAddress}{UploadLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
                     _logger.LogError(LoggerEvents.UploadLocationsRequestFailure, error);
                     throw new HttpRequestException(error);
                 }
 
                 _logger.LogInformation(LoggerEvents.UploadLocationsRequestSuccess,
-                    $"Uploading {batch.Count} locations to {client.BaseAddress}/{UploadLocationsRequestPath} completed successfully");
+                    $"Uploading {batch.Count} locations to {client.BaseAddress}{UploadLocationsRequestPath} completed successfully");
             }
         }
         
