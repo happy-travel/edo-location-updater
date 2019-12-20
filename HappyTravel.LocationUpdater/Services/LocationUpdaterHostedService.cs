@@ -66,25 +66,27 @@ namespace HappyTravel.LocationUpdater.Services
 
         private async Task<List<Location>> FetchLocations()
         {
-            using var client = _clientFactory.CreateClient(HttpClientNames.NetstormingConnector);
-            using var response = await client.GetAsync(GetLocationsRequestPath);
-
-            if (!response.IsSuccessStatusCode)
+            using (var client = _clientFactory.CreateClient(HttpClientNames.NetstormingConnector))
+            using (var response = await client.GetAsync(GetLocationsRequestPath))
             {
-                var error =
-                    $"Failed to get locations from {client.BaseAddress}{GetLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
-                _logger.LogError(LoggerEvents.GetLocationsRequestFailure, error);
-                throw new HttpRequestException(error);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error =
+                        $"Failed to get locations from {client.BaseAddress}{GetLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
+                    _logger.LogError(LoggerEvents.GetLocationsRequestFailure, error);
+                    throw new HttpRequestException(error);
+                }
+
+                _logger.LogInformation(LoggerEvents.GetLocationsRequestSuccess,
+                    $"Locations from {client.BaseAddress}{GetLocationsRequestPath} loaded successfully");
+
+                using (var stream = await response.Content.ReadAsStreamAsync())
+                using (var streamReader = new StreamReader(stream))
+                using (var jsonTextReader = new JsonTextReader(streamReader))
+                    return _serializer.Deserialize<List<Location>>(jsonTextReader);
             }
 
-            _logger.LogInformation(LoggerEvents.GetLocationsRequestSuccess,
-                $"Locations from {client.BaseAddress}{GetLocationsRequestPath} loaded successfully");
-
-            await using var stream = await response.Content.ReadAsStreamAsync();
-            using var streamReader = new StreamReader(stream);
-            using var jsonTextReader = new JsonTextReader(streamReader);
-
-            return _serializer.Deserialize<List<Location>>(jsonTextReader);
+            
         }
 
         private async Task UploadLocations(List<Location> locations)
