@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using IdentityModel.Client;
 using Microsoft.Extensions.Options;
 
-namespace HappyTravel.LocationUpdater.Services
+namespace HappyTravel.LocationUpdater.Infrastructure
 {
     public class ProtectedApiBearerTokenHandler : DelegatingHandler
     {
@@ -27,7 +27,6 @@ namespace HappyTravel.LocationUpdater.Services
         private async Task<string> GetToken()
         {
             using var client = _clientFactory.CreateClient(HttpClientNames.Identity);
-            // request the access token token
             var tokenResponse = await client.RequestClientCredentialsTokenAsync(_tokenRequest);
             if (tokenResponse.IsError)
                 throw new HttpRequestException($"Something went wrong while requesting the access token. Error: {tokenResponse.Error}");
