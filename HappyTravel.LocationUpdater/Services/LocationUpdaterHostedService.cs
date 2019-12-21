@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
@@ -125,7 +126,13 @@ namespace HappyTravel.LocationUpdater.Services
             {
                 // If the batch cannot be divided we cannot do anything
                 if (batch.Count < 2)
+                {
+                    var problemLocationNames = string.Join(";", batch.Select(b => b.Name));
+                    _logger.LogError(LoggerEvents.UploadLocationsRetryFailure,
+                        $"Could not load locations: '{problemLocationNames}'");
                     throw;
+                }
+                    
                 
                 // We'll try to do this with a smaller portion of locations.
                 var smallerBatches = ListHelper.SplitList(batch, batch.Count / 2);
