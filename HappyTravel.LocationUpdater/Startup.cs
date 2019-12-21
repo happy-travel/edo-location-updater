@@ -68,17 +68,20 @@ namespace HappyTravel.LocationUpdater
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
             });
             services.AddHttpClient(HttpClientNames.EdoApi, client =>
-            {
-                client.BaseAddress = new Uri(edoApiUrl);
-                client.Timeout = TimeSpan.FromMinutes(5);
-            }).AddHttpMessageHandler<ProtectedApiBearerTokenHandler>();
+                {
+                    client.BaseAddress = new Uri(edoApiUrl);
+                    client.Timeout = TimeSpan.FromMinutes(5);
+                })
+                .SetHandlerLifetime(TimeSpan.FromMinutes(5))
+                .AddHttpMessageHandler<ProtectedApiBearerTokenHandler>();
 
             services.AddHttpClient(HttpClientNames.NetstormingConnector, client =>
-            {
-                client.BaseAddress = new Uri(dataProvidersOptions["netstormingConnector"]);
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
-                client.Timeout = TimeSpan.FromMinutes(5);
-            });
+                {
+                    client.BaseAddress = new Uri(dataProvidersOptions["netstormingConnector"]);
+                    client.DefaultRequestHeaders.Add("Accept", "application/json");
+                    client.Timeout = TimeSpan.FromMinutes(10);
+                }).SetHandlerLifetime(TimeSpan.FromMinutes(10))
+                .AddPolicyHandler(HttpClientPolicies.GetRetryPolicy());
 
             services.Configure<UpdaterOptions>(o =>
             {

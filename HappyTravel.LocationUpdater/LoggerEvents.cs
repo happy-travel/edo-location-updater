@@ -11,5 +11,6 @@ namespace HappyTravel.LocationUpdater
         public static EventId GetLocationsRequestSuccess = new EventId(20011);
         public static EventId UploadLocationsRequestFailure = new EventId(20020);
         public static EventId UploadLocationsRequestSuccess = new EventId(20021);
+        public static EventId UploadLocationsRetry = new EventId(20022);
     }
 }
