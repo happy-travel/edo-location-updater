@@ -1,111 +1,158 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using HappyTravel.LocationUpdater.Infrastructure;
 using HappyTravel.LocationUpdater.Models;
-using HappyTravel.LocationUpdater.Models.Enums;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
 namespace HappyTravel.LocationUpdater.Services
 {
     public class LocationUpdaterHostedService : IHostedService
     {
-        public LocationUpdaterHostedService(IHttpClientFactory clientFactory, IHostApplicationLifetime applicationLifetime)
+        public LocationUpdaterHostedService(IHttpClientFactory clientFactory,
+            IHostApplicationLifetime applicationLifetime,
+            ILogger<LocationUpdaterHostedService> logger,
+            IOptions<UpdaterOptions> options)
         {
             _clientFactory = clientFactory;
             _applicationLifetime = applicationLifetime;
+            _logger = logger;
+            _options = options.Value;
 
             _serializer = new JsonSerializer();
         }
 
 
-        public Task StartAsync(CancellationToken cancellationToken) => GetLocations();
-
-
-        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-
-        private async Task GetLocations()
+        public Task StartAsync(CancellationToken cancellationToken)
         {
-            List<Location> locations;
-
-            using (var client = _clientFactory.CreateClient(HttpClientNames.NetstormingConnector))
-            using (var response = await client.GetAsync("/api/1.0/locations"))
-            using (var stream = await response.Content.ReadAsStreamAsync())
-            using (var streamReader = new StreamReader(stream))
-            using (var jsonTextReader = new JsonTextReader(streamReader))
-                locations = _serializer.Deserialize<List<Location>>(jsonTextReader);
-
-            await ProcessLocations(locations);
-            
-            _applicationLifetime.StopApplication();
+            return LoadLocations();
         }
 
 
-        private static Location ProcessLocation(in Location location)
+        public Task StopAsync(CancellationToken cancellationToken)
         {
-            var distance = DefaultSearchDistanceForCountry;
-            if (!string.IsNullOrWhiteSpace(location.Locality))
+            return Task.CompletedTask;
+        }
+
+
+        private async Task LoadLocations()
+        {
+            _logger.LogInformation(LoggerEvents.ServiceStarting, "Started loading locations...");
+
+            try
             {
-                distance = DefaultSearchDistanceForCity;
-                if (!string.IsNullOrWhiteSpace(location.Name))
-                    distance = DefaultSearchDistanceForCityZone;
-            }
+                var locations = await FetchLocations();
+                var processedLocations = LocationProcessor.ProcessLocations(locations);
+                await UploadLocations(processedLocations);
 
-            return new Location(location, distance, PredictionSources.NetstormingConnector);
+                _logger.LogInformation(LoggerEvents.ServiceStopping, "Finished loading locations...");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(LoggerEvents.ServiceError, ex.Message);
+            }
+            finally
+            {
+                _applicationLifetime.StopApplication();
+            }
         }
 
-
-        private Task ProcessLocations(List<Location> locations)
+        private async Task<List<Location>> FetchLocations()
         {
-            var processedLocations = new List<Location>();
-            foreach (var location in locations)
-                switch (location.Type)
+            using (var client = _clientFactory.CreateClient(HttpClientNames.NetstormingConnector))
+            using (var response = await client.GetAsync(GetLocationsRequestPath))
+            {
+                if (!response.IsSuccessStatusCode)
                 {
-                    case LocationTypes.Destination:
-                        processedLocations.Add(new Location(location, DefaultSearchDistanceForDestinations, PredictionSources.NetstormingConnector));
-                        break;
-                    case LocationTypes.Accommodation:
-                        processedLocations.Add(new Location(location, DefaultSearchDistanceForHotels, PredictionSources.NetstormingConnector));
-                        break;
-                    case LocationTypes.Landmark:
-                        processedLocations.Add(new Location(location, DefaultSearchDistanceForLandmarks, PredictionSources.NetstormingConnector));
-                        break;
-                    case LocationTypes.Location:
-                        processedLocations.Add(ProcessLocation(location));
-                        break;
-                    case LocationTypes.Unknown:
-                    default:
-                        throw new ArgumentOutOfRangeException();
+                    var error =
+                        $"Failed to get locations from {client.BaseAddress}{GetLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
+                    _logger.LogError(LoggerEvents.GetLocationsRequestFailure, error);
+                    throw new HttpRequestException(error);
                 }
 
-            return UploadLocations(processedLocations);
-        }
+                _logger.LogInformation(LoggerEvents.GetLocationsRequestSuccess,
+                    $"Locations from {client.BaseAddress}{GetLocationsRequestPath} loaded successfully");
 
+                using (var stream = await response.Content.ReadAsStreamAsync())
+                using (var streamReader = new StreamReader(stream))
+                using (var jsonTextReader = new JsonTextReader(streamReader))
+                    return _serializer.Deserialize<List<Location>>(jsonTextReader);
+            }
+
+            
+        }
 
         private async Task UploadLocations(List<Location> locations)
         {
-            var json = JsonConvert.SerializeObject(locations);
             using (var client = _clientFactory.CreateClient(HttpClientNames.EdoApi))
-            using (var _ = await client.PostAsync("/api/1.0/locations/" + PredictionSources.NetstormingConnector,
-                new StringContent(json, Encoding.UTF8, "application/json")))
-            { }
+            {
+                foreach (var batch in ListHelper.SplitList(locations, _options.BatchSize))
+                {
+                    await Task.Delay(_options.UploadRequestDelay);
+                    await UploadBatch(batch, client);
+                }
+            }
         }
 
+        private async Task UploadBatch(List<Location> batch, HttpClient client)
+        {
+            try
+            {
+                var json = JsonConvert.SerializeObject(batch);
+                using (var response = await client.PostAsync(UploadLocationsRequestPath,
+                    new StringContent(json, Encoding.UTF8, "application/json")))
+                {
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var error =
+                            $"Failed to upload {batch.Count} locations from {client.BaseAddress}{UploadLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
+                        _logger.LogError(LoggerEvents.UploadLocationsRequestFailure, error);
+                        throw new HttpRequestException(error);
+                    }
 
-        private const int DefaultSearchDistanceForDestinations = 3_000;
-        private const int DefaultSearchDistanceForHotels = 100;
-        private const int DefaultSearchDistanceForLandmarks = 1_000;
-        private const int DefaultSearchDistanceForCity = 20_000;
-        private const int DefaultSearchDistanceForCityZone = 2_000;
-        private const int DefaultSearchDistanceForCountry = 200_000;
-        
-        private readonly IHttpClientFactory _clientFactory;
+                    _logger.LogInformation(LoggerEvents.UploadLocationsRequestSuccess,
+                        $"Uploading {batch.Count} locations to {client.BaseAddress}{UploadLocationsRequestPath} completed successfully");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                // If the batch cannot be divided we cannot do anything
+                if (batch.Count < 2)
+                {
+                    var problemLocationNames = string.Join(";", batch.Select(b => b.Name));
+                    _logger.LogError(LoggerEvents.UploadLocationsRetryFailure,
+                        $"Could not load locations: '{problemLocationNames}'");
+                    throw;
+                }
+                    
+                
+                // We'll try to do this with a smaller portion of locations.
+                var smallerBatches = ListHelper.SplitList(batch, batch.Count / 2);
+                foreach (var smallerBatch in smallerBatches)
+                {
+                    _logger.LogInformation(LoggerEvents.UploadLocationsRetry,
+                        $"Retrying upload locations with smaller batch size {smallerBatch.Count}");
+                    
+                    await UploadBatch(smallerBatch, client);
+                }
+            }
+        }
+
+        private const string GetLocationsRequestPath = "locations";
+        private const string UploadLocationsRequestPath = "/en/api/1.0/locations";
         private readonly IHostApplicationLifetime _applicationLifetime;
+
+        private readonly IHttpClientFactory _clientFactory;
+        private readonly ILogger<LocationUpdaterHostedService> _logger;
+        private readonly UpdaterOptions _options;
         private readonly JsonSerializer _serializer;
     }
 }

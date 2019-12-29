@@ -1,11 +1,14 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using HappyTravel.SentryLogger.Extensions;
-using HappyTravel.StdOutLogger.Extensions;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Events;
+using Serilog.Formatting.Elasticsearch;
 
 namespace HappyTravel.LocationUpdater
 {
@@ -32,23 +35,30 @@ namespace HappyTravel.LocationUpdater
                 })
                 .ConfigureLogging((hostingContext, logging) =>
                 {
-                    logging.ClearProviders()
-                        .AddConfiguration(hostingContext.Configuration.GetSection("Logging"));
-
-                    logging.AddStdOut();
-
                     var env = hostingContext.HostingEnvironment;
-                    if (env.IsDevelopment())
-                    {
-                        logging.AddConsole();
-                    }
-                    else
+                    if (!env.IsDevelopment())
                     {
                         logging.AddEventSourceLogger()
                             .AddSentry(c =>
                             {
                                 c.Endpoint = hostingContext.Configuration["Logging:Sentry:Endpoint"];
                             });
+                    }
+                })
+                .UseSerilog((context, config) =>
+                {
+                    var configuration = context.Configuration;
+                    var level = (LogEventLevel) Enum.Parse(typeof(LogEventLevel), configuration["Logging:LogLevel:Default"]);
+                    config.MinimumLevel.Is(level)
+                        .Enrich.FromLogContext();
+                    
+                    if (context.HostingEnvironment.IsProduction())
+                    {
+                        config.WriteTo.Console(new ElasticsearchJsonFormatter(renderMessageTemplate:false, inlineFields:true));
+                    }
+                    else
+                    {
+                        config.WriteTo.Console();
                     }
                 });
     }

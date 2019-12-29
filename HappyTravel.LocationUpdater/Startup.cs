@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using HappyTravel.LocationUpdater.Infrastructure;
 using HappyTravel.LocationUpdater.Services;
 using HappyTravel.VaultClient;
 using IdentityModel.Client;
@@ -67,14 +68,33 @@ namespace HappyTravel.LocationUpdater
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
             });
             services.AddHttpClient(HttpClientNames.EdoApi, client =>
-            {
-                client.BaseAddress = new Uri(edoApiUrl);
-            }).AddHttpMessageHandler<ProtectedApiBearerTokenHandler>();
-            
+                {
+                    client.BaseAddress = new Uri(edoApiUrl);
+                    client.Timeout = TimeSpan.FromMinutes(5);
+                })
+                .SetHandlerLifetime(TimeSpan.FromMinutes(5))
+                .AddHttpMessageHandler<ProtectedApiBearerTokenHandler>();
+
             services.AddHttpClient(HttpClientNames.NetstormingConnector, client =>
+                {
+                    client.BaseAddress = new Uri(dataProvidersOptions["netstormingConnector"]);
+                    client.DefaultRequestHeaders.Add("Accept", "application/json");
+                    client.Timeout = TimeSpan.FromMinutes(10);
+                }).SetHandlerLifetime(TimeSpan.FromMinutes(10))
+                .AddPolicyHandler(HttpClientPolicies.GetRetryPolicy());
+
+            services.Configure<UpdaterOptions>(o =>
             {
-                client.BaseAddress = new Uri(dataProvidersOptions["netstormingConnector"]);
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                var batchSizeSetting = Environment.GetEnvironmentVariable("BatchSize");
+
+                o.BatchSize = int.TryParse(batchSizeSetting, out var batchSize)
+                    ? batchSize
+                    : 100;
+                
+                var requestDelaySetting = Environment.GetEnvironmentVariable("RequestDelay");
+                o.UploadRequestDelay = int.TryParse(requestDelaySetting, out var requestDelayMilliseconds)
+                    ? TimeSpan.FromMilliseconds(requestDelayMilliseconds)
+                    : TimeSpan.FromMilliseconds(50);
             });
             
             services.AddHttpClient();
