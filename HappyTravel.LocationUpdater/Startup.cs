@@ -28,7 +28,7 @@ namespace HappyTravel.LocationUpdater
                 Formatting = Formatting.None
             };
             JsonConvert.DefaultSettings = () => serializationSettings;
-            
+
             string clientSecret;
             string authorityUrl;
             string edoApiUrl;
@@ -42,10 +42,10 @@ namespace HappyTravel.LocationUpdater
             }, null))
             {
                 vaultClient.Login(GetFromEnvironment("Vault:Token")).Wait();
-             
+
                 var jobsSettings = vaultClient.Get(Configuration["Identity:JobsOptions"]).Result;
                 clientSecret = jobsSettings[Configuration["Identity:Secret"]];
-                
+
                 var edoSettings = vaultClient.Get(Configuration["Edo:EdoOptions"]).Result;
                 authorityUrl = edoSettings[Configuration["Identity:Authority"]];
                 edoApiUrl = edoSettings[Configuration["Edo:Api"]];
@@ -83,6 +83,14 @@ namespace HappyTravel.LocationUpdater
                 }).SetHandlerLifetime(TimeSpan.FromMinutes(10))
                 .AddPolicyHandler(HttpClientPolicies.GetRetryPolicy());
 
+            services.AddHttpClient(HttpClientNames.Illusions, client =>
+                {
+                    client.BaseAddress = new Uri(dataProvidersOptions[HttpClientNames.Illusions]);
+                    client.DefaultRequestHeaders.Add("Accept", "application/json");
+                    client.Timeout = TimeSpan.FromMinutes(10);
+                }).SetHandlerLifetime(TimeSpan.FromMinutes(10))
+                .AddPolicyHandler(HttpClientPolicies.GetRetryPolicy());
+
             services.Configure<UpdaterOptions>(o =>
             {
                 var batchSizeSetting = Environment.GetEnvironmentVariable("BatchSize");
@@ -90,13 +98,13 @@ namespace HappyTravel.LocationUpdater
                 o.BatchSize = int.TryParse(batchSizeSetting, out var batchSize)
                     ? batchSize
                     : 100;
-                
+
                 var requestDelaySetting = Environment.GetEnvironmentVariable("RequestDelay");
                 o.UploadRequestDelay = int.TryParse(requestDelaySetting, out var requestDelayMilliseconds)
                     ? TimeSpan.FromMilliseconds(requestDelayMilliseconds)
                     : TimeSpan.FromMilliseconds(50);
             });
-            
+
             services.AddHttpClient();
             services.AddHealthChecks();
             services.AddHostedService<LocationUpdaterHostedService>();
@@ -117,7 +125,7 @@ namespace HappyTravel.LocationUpdater
 
             return Environment.GetEnvironmentVariable(environmentVariable);
         }
-        
+
         public IConfiguration Configuration { get; }
     }
 }

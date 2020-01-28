@@ -29,13 +29,13 @@ namespace HappyTravel.LocationUpdater.Services
             {
                 case LocationTypes.Destination:
                     return new Location(location, DefaultSearchDistanceForDestinations,
-                        PredictionSources.NetstormingConnector);
+                        PredictionSources.Interior);
                 case LocationTypes.Accommodation:
                     return new Location(location, DefaultSearchDistanceForHotels,
-                        PredictionSources.NetstormingConnector);
+                        PredictionSources.Interior);
                 case LocationTypes.Landmark:
                     return new Location(location, DefaultSearchDistanceForLandmarks,
-                        PredictionSources.NetstormingConnector);
+                        PredictionSources.Interior);
                 case LocationTypes.Location:
                 {
                     var distance = DefaultSearchDistanceForCountry;
@@ -46,7 +46,7 @@ namespace HappyTravel.LocationUpdater.Services
                             distance = DefaultSearchDistanceForCityZone;
                     }
 
-                    return new Location(location, distance, PredictionSources.NetstormingConnector);
+                    return new Location(location, distance, PredictionSources.Interior);
                 }
                 case LocationTypes.Unknown:
                 default:

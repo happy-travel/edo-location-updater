@@ -11,6 +11,6 @@ namespace HappyTravel.LocationUpdater.Models.Enums
         Google,
 
         [EnumMember(Value = "interior")]
-        NetstormingConnector
+        Interior
     }
 }
