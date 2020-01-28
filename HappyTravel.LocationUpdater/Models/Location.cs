@@ -19,7 +19,7 @@ namespace HappyTravel.LocationUpdater.Models
             Distance = distance;
             Source = source;
             Type = type;
-            DataProviders = dataProviders ?? new List<DataProviders>();
+            DataProviders = dataProviders == null ? new List<DataProviders>() : dataProviders;
             //Name, Locality, Country we are getting in json format and for comparision we need only in default localization
             ParsedCountry = LocalizationHelper.GetDefaultFromLocalizedName(country).ToUpper();
             ParsedLocality = LocalizationHelper.GetDefaultFromLocalizedName(locality).ToUpper();
@@ -30,6 +30,12 @@ namespace HappyTravel.LocationUpdater.Models
         public Location(Location location, int distance, PredictionSources source)
             : this(location.Name, location.Locality, location.Country, location.Coordinates, distance, source,
                 location.Type, location.DataProviders)
+        {
+        }
+
+        public Location(Location location, List<DataProviders> dataProviders)
+            : this(location.Name, location.Locality, location.Country, location.Coordinates, location.Distance,
+                location.Source, location.Type, dataProviders)
         {
         }
 

@@ -77,14 +77,12 @@ namespace HappyTravel.LocationUpdater.Services
             var intersectedLocations = netstormingLocations.Intersect(illusionsLocations).ToList();
 
             return netstormingLocations
-                .Except(intersectedLocations).Select(l => new Location(l.Name, l.Locality, l.Country, l.Coordinates,
-                    l.Distance, l.Source, l.Type, new List<DataProviders> {DataProviders.Netstorming}))
-                .Union(intersectedLocations.Select(l => new Location(l.Name, l.Locality, l.Country, l.Coordinates,
-                    l.Distance, l.Source, l.Type,
-                    new List<DataProviders> {DataProviders.Netstorming, DataProviders.Illusions})))
-                .Union(illusionsLocations.Except(intersectedLocations.Select(l => new Location(l.Name, l.Locality,
-                    l.Country, l.Coordinates,
-                    l.Distance, l.Source, l.Type, new List<DataProviders> {DataProviders.Illusions})))).ToList();
+                .Except(intersectedLocations)
+                .Select(l => new Location(l, new List<DataProviders> {DataProviders.Netstorming}))
+                .Union(intersectedLocations.Select(l
+                    => new Location(l, new List<DataProviders> {DataProviders.Netstorming, DataProviders.Illusions})))
+                .Union(illusionsLocations.Except(intersectedLocations).Select(l
+                    => new Location(l, new List<DataProviders> {DataProviders.Illusions}))).ToList();
         }
 
 

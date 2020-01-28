@@ -10,10 +10,10 @@ namespace HappyTravel.LocationUpdater.Infrastructure
         {
             if (string.IsNullOrEmpty(name))
                 return name;
-            
-                var localizedName = JsonConvert.DeserializeObject<Dictionary<string, string>>(name);
-                localizedName.TryGetValue(DefaultLanguageCode, out var defaultName);
-                return defaultName;
+
+            var localizedName = JsonConvert.DeserializeObject<Dictionary<string, string>>(name);
+            localizedName.TryGetValue(DefaultLanguageCode, out var defaultName);
+            return defaultName;
         }
 
         private const string DefaultLanguageCode = "en";
