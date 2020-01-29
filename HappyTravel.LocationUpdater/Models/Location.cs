@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using HappyTravel.Geography;
 using HappyTravel.LocationUpdater.Infrastructure;
 using HappyTravel.LocationUpdater.Models.Enums;
 using Newtonsoft.Json;

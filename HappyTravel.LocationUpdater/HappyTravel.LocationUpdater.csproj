@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="HappyTravel.Geography" Version="1.1.0" />
     <PackageReference Include="HappyTravel.SentryLogger" Version="1.0.1" />
     <PackageReference Include="HappyTravel.VaultClient" Version="1.0.3" />
     <PackageReference Include="IdentityModel" Version="4.0.0" />
