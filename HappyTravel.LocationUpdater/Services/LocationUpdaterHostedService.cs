@@ -29,9 +29,6 @@ namespace HappyTravel.LocationUpdater.Services
             _options = options.Value;
 
             _serializer = new JsonSerializer();
-
-            //TODO: get last modified date from db
-            _getLocationsRequestPath = "locations/" + DateTime.UtcNow.AddMonths(-1).ToString("s");
         }
 
 
@@ -89,19 +86,20 @@ namespace HappyTravel.LocationUpdater.Services
         private async Task<List<Location>> FetchLocations(string providerName)
         {
             using (var client = _clientFactory.CreateClient(providerName))
-            using (var response =
-                await client.GetAsync(_getLocationsRequestPath))
+                //TODO: get last modified date from db
+            using (var response = await client.GetAsync(GetLocationsRequestPath
+                + DateTime.UtcNow.AddMonths(-1).ToString("s")))
             {
                 if (!response.IsSuccessStatusCode)
                 {
                     var error =
-                        $"Failed to get locations from {client.BaseAddress}{_getLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
+                        $"Failed to get locations from {client.BaseAddress}{GetLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
                     _logger.LogError(LoggerEvents.GetLocationsRequestFailure, error);
                     throw new HttpRequestException(error);
                 }
 
                 _logger.LogInformation(LoggerEvents.GetLocationsRequestSuccess,
-                    $"Locations from {client.BaseAddress}{_getLocationsRequestPath} loaded successfully");
+                    $"Locations from {client.BaseAddress}{GetLocationsRequestPath} loaded successfully");
 
                 using (var stream = await response.Content.ReadAsStreamAsync())
                 using (var streamReader = new StreamReader(stream))
@@ -166,11 +164,11 @@ namespace HappyTravel.LocationUpdater.Services
             }
         }
 
-
+        private const string GetLocationsRequestPath = "locations/";
         private const string UploadLocationsRequestPath = "/en/api/1.0/locations";
         private readonly IHostApplicationLifetime _applicationLifetime;
 
-        private readonly string _getLocationsRequestPath;
+
         private readonly IHttpClientFactory _clientFactory;
         private readonly ILogger<LocationUpdaterHostedService> _logger;
         private readonly UpdaterOptions _options;

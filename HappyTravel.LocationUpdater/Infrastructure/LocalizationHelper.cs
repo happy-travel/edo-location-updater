@@ -9,7 +9,7 @@ namespace HappyTravel.LocationUpdater.Infrastructure
         public static string GetDefaultFromLocalizedName(string name)
         {
             if (string.IsNullOrEmpty(name))
-                return name;
+                return string.Empty;
 
             var localizedName = JsonConvert.DeserializeObject<Dictionary<string, string>>(name);
             localizedName.TryGetValue(DefaultLanguageCode, out var defaultName);

@@ -21,9 +21,9 @@ namespace HappyTravel.LocationUpdater.Models
             Type = type;
             DataProviders = dataProviders == null ? new List<DataProviders>() : dataProviders;
             //Name, Locality, Country we are getting in json format and for comparision we need only in default localization
-            ParsedCountry = LocalizationHelper.GetDefaultFromLocalizedName(country).ToUpper();
-            ParsedLocality = LocalizationHelper.GetDefaultFromLocalizedName(locality).ToUpper();
-            ParsedName = LocalizationHelper.GetDefaultFromLocalizedName(name).ToUpper();
+            DefaultFromLocalizedCountry = LocalizationHelper.GetDefaultFromLocalizedName(country).ToUpper();
+            DefaultFromLocalizedLocality = LocalizationHelper.GetDefaultFromLocalizedName(locality).ToUpper();
+            DefaultFromLocalizedName = LocalizationHelper.GetDefaultFromLocalizedName(name).ToUpper();
         }
 
 
@@ -50,9 +50,9 @@ namespace HappyTravel.LocationUpdater.Models
 
         public List<DataProviders> DataProviders { get; }
 
-        public readonly string ParsedCountry;
-        public readonly string ParsedLocality;
-        public readonly string ParsedName;
+        public string DefaultFromLocalizedCountry { get; }
+        public string DefaultFromLocalizedLocality { get; }
+        public string DefaultFromLocalizedName { get; }
 
         public override bool Equals(object obj)
         {
@@ -61,16 +61,15 @@ namespace HappyTravel.LocationUpdater.Models
 
             var otherLocation = (Location) obj;
 
-            return ParsedCountry == otherLocation.ParsedCountry
-                && ParsedLocality == otherLocation.ParsedLocality
-                && ParsedName == otherLocation.ParsedName
-                && Coordinates.Latitude.CompareTo(otherLocation.Coordinates.Latitude) == 0 &&
-                Coordinates.Longitude.CompareTo(otherLocation.Coordinates.Longitude) == 0
-                && Source == otherLocation.Source
-                && Type == otherLocation.Type;
+            return (DefaultFromLocalizedName, DefaultFromLocalizedLocality,
+                    DefaultFromLocalizedCountry, Coordinates, Distance, Source, Type) ==
+                (otherLocation.DefaultFromLocalizedName, otherLocation.DefaultFromLocalizedLocality,
+                    otherLocation.DefaultFromLocalizedCountry, otherLocation.Coordinates, otherLocation.Distance,
+                    otherLocation.Source, otherLocation.Type);
         }
 
         public override int GetHashCode()
-            => (ParsedName, ParsedLocality, ParsedCountry, Coordinates, Distance, Source, Type).GetHashCode();
+            => (ParsedName: DefaultFromLocalizedName, ParsedLocality: DefaultFromLocalizedLocality,
+                ParsedCountry: DefaultFromLocalizedCountry, Coordinates, Distance, Source, Type).GetHashCode();
     }
 }
