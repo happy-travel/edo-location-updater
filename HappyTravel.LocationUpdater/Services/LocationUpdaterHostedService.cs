@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using HappyTravel.LocationUpdater.Infrastructure;
 using HappyTravel.LocationUpdater.Models;
+using HappyTravel.LocationUpdater.Models.Enums;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -67,8 +68,27 @@ namespace HappyTravel.LocationUpdater.Services
 
         private async Task<List<Location>> FetchLocations()
         {
-            using (var client = _clientFactory.CreateClient(HttpClientNames.NetstormingConnector))
-            using (var response = await client.GetAsync(GetLocationsRequestPath))
+            var netstormingLocations = await FetchLocations(HttpClientNames.NetstormingConnector);
+            var illusionsLocations = await FetchLocations(HttpClientNames.Illusions);
+
+            var intersectedLocations = netstormingLocations.Intersect(illusionsLocations).ToList();
+
+            return netstormingLocations
+                .Except(intersectedLocations)
+                .Select(l => new Location(l, new List<DataProviders> {DataProviders.Netstorming}))
+                .Union(intersectedLocations.Select(l
+                    => new Location(l, new List<DataProviders> {DataProviders.Netstorming, DataProviders.Illusions})))
+                .Union(illusionsLocations.Except(intersectedLocations).Select(l
+                    => new Location(l, new List<DataProviders> {DataProviders.Illusions}))).ToList();
+        }
+
+
+        private async Task<List<Location>> FetchLocations(string providerName)
+        {
+            using (var client = _clientFactory.CreateClient(providerName))
+                //TODO: get last modified date from db
+            using (var response = await client.GetAsync(GetLocationsRequestPath
+                + DateTime.UtcNow.AddMonths(-1).ToString("s")))
             {
                 if (!response.IsSuccessStatusCode)
                 {
@@ -86,8 +106,6 @@ namespace HappyTravel.LocationUpdater.Services
                 using (var jsonTextReader = new JsonTextReader(streamReader))
                     return _serializer.Deserialize<List<Location>>(jsonTextReader);
             }
-
-            
         }
 
         private async Task UploadLocations(List<Location> locations)
@@ -132,23 +150,24 @@ namespace HappyTravel.LocationUpdater.Services
                         $"Could not load locations: '{problemLocationNames}'");
                     throw;
                 }
-                    
-                
+
+
                 // We'll try to do this with a smaller portion of locations.
                 var smallerBatches = ListHelper.SplitList(batch, batch.Count / 2);
                 foreach (var smallerBatch in smallerBatches)
                 {
                     _logger.LogInformation(LoggerEvents.UploadLocationsRetry,
                         $"Retrying upload locations with smaller batch size {smallerBatch.Count}");
-                    
+
                     await UploadBatch(smallerBatch, client);
                 }
             }
         }
 
-        private const string GetLocationsRequestPath = "locations";
+        private const string GetLocationsRequestPath = "locations/";
         private const string UploadLocationsRequestPath = "/en/api/1.0/locations";
         private readonly IHostApplicationLifetime _applicationLifetime;
+
 
         private readonly IHttpClientFactory _clientFactory;
         private readonly ILogger<LocationUpdaterHostedService> _logger;
