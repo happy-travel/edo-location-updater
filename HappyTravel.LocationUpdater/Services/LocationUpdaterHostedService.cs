@@ -21,14 +21,15 @@ namespace HappyTravel.LocationUpdater.Services
         public LocationUpdaterHostedService(IHttpClientFactory clientFactory,
             IHostApplicationLifetime applicationLifetime,
             ILogger<LocationUpdaterHostedService> logger,
-            IOptions<UpdaterOptions> options)
+            IOptions<UpdaterOptions> options,
+            JsonSerializer serializer)
         {
             _clientFactory = clientFactory;
             _applicationLifetime = applicationLifetime;
             _logger = logger;
             _options = options.Value;
 
-            _serializer = new JsonSerializer();
+            _serializer = serializer;
         }
 
 
@@ -68,8 +69,9 @@ namespace HappyTravel.LocationUpdater.Services
 
         private async Task<List<Location>> FetchLocations()
         {
-            var netstormingLocations = await FetchLocations(HttpClientNames.NetstormingConnector);
-            var illusionsLocations = await FetchLocations(HttpClientNames.Illusions);
+            var lastModified = await GetLastModifiedDate();
+            var netstormingLocations = await FetchLocations(HttpClientNames.NetstormingConnector, lastModified);
+            var illusionsLocations = await FetchLocations(HttpClientNames.Illusions, lastModified);
 
             var intersectedLocations = netstormingLocations.Intersect(illusionsLocations).ToList();
 
@@ -82,13 +84,32 @@ namespace HappyTravel.LocationUpdater.Services
                     => new Location(l, new List<DataProviders> {DataProviders.Illusions}))).ToList();
         }
 
+        
+        private async Task<DateTime> GetLastModifiedDate()
+        {
+            using var client = _clientFactory.CreateClient(HttpClientNames.EdoApi);
+            using var response = await client.GetAsync(GetLocationsModifiedDateRequestPath);
 
-        private async Task<List<Location>> FetchLocations(string providerName)
+            if (!response.IsSuccessStatusCode)
+            {
+                var error =
+                    $"Failed to get locations last modified date with status code '{response.StatusCode}', message '{response.ReasonPhrase}'";
+                _logger.LogError(LoggerEvents.GetLocationsModifiedRequestFailure, error);
+                throw new HttpRequestException(error);
+            }
+
+            var lastModified = JsonConvert.DeserializeObject<DateTime>(await response.Content.ReadAsStringAsync());
+            _logger.LogInformation(LoggerEvents.GetLocationsModifiedRequestSuccess, $"Last locations modified was fetched successfully: '{lastModified}'");
+            return lastModified;
+        }
+
+
+        private async Task<List<Location>> FetchLocations(string providerName, DateTime lastModified)
         {
             using (var client = _clientFactory.CreateClient(providerName))
                 //TODO: get last modified date from db
             using (var response = await client.GetAsync(GetLocationsRequestPath
-                + DateTime.UtcNow.AddMonths(-1).ToString("s")))
+                + lastModified.ToString("s")))
             {
                 if (!response.IsSuccessStatusCode)
                 {
@@ -140,7 +161,7 @@ namespace HappyTravel.LocationUpdater.Services
                         $"Uploading {batch.Count} locations to {client.BaseAddress}{UploadLocationsRequestPath} completed successfully");
                 }
             }
-            catch (HttpRequestException ex)
+            catch (HttpRequestException)
             {
                 // If the batch cannot be divided we cannot do anything
                 if (batch.Count < 2)
@@ -165,6 +186,7 @@ namespace HappyTravel.LocationUpdater.Services
         }
 
         private const string GetLocationsRequestPath = "locations/";
+        private const string GetLocationsModifiedDateRequestPath = "/en/api/1.0/locations/lastModified";
         private const string UploadLocationsRequestPath = "/en/api/1.0/locations";
         private readonly IHostApplicationLifetime _applicationLifetime;
 
