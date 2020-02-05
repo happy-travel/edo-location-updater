@@ -53,6 +53,7 @@ namespace HappyTravel.LocationUpdater
             }
 
             services.AddTransient<ProtectedApiBearerTokenHandler>();
+            services.AddTransient<JsonSerializer>();
             services.Configure<ClientCredentialsTokenRequest>(options =>
             {
                 var uri = new Uri(new Uri(authorityUrl), "/connect/token");
