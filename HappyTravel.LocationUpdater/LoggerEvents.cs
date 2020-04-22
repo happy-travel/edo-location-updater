@@ -21,6 +21,6 @@ namespace HappyTravel.LocationUpdater
         public static EventId GetLocationsLastModifiedData = new EventId(20027);
         public static EventId DownloadLocationsFromConnectorToDb = new EventId(20028);
         public static EventId UploadLocationsToEdo = new EventId(20029);
-        
+        public static EventId RemovePreviousLocationsFromDb = new EventId(20030);
     }
 }

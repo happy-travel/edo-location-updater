@@ -18,7 +18,7 @@ namespace Common.Infrastructure
         }
         
         
-        public static string CombineLanguages(string firstJsonWithLanguages, string secondJsonWithLanguages)
+        public static string MergeLanguages(string firstJsonWithLanguages, string secondJsonWithLanguages)
         {
             if (string.IsNullOrEmpty(firstJsonWithLanguages))
                 return secondJsonWithLanguages;

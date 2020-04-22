@@ -2,7 +2,12 @@
 {
     public static class DeterministicHash
     {
-        public static int CalculateDeterministicHashCode(string value)
+        /// <summary>
+        /// https://andrewlock.net/why-is-string-gethashcode-different-each-time-i-run-my-program-in-net-core/
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static int Calculate(string value)
         {
             //disables overflow-checking for the integer arithmetic done inside the function
             unchecked

@@ -1,4 +1,7 @@
-﻿using HappyTravel.Data.Models;
+﻿using System.Data;
+using System.Data.Common;
+using System.Threading.Tasks;
+using HappyTravel.Data.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace HappyTravel.Data
@@ -33,6 +36,28 @@ namespace HappyTravel.Data
                 typeBuilder.Property(l => l.Type);
                 typeBuilder.Property(l => l.DataProviders).HasColumnType("jsonb");
             });
+        }
+
+        
+        public async Task ClearLocationsTable()
+        {
+            var entity = Model.FindEntityType(typeof(Location));
+            var tableName = entity.GetTableName();
+            await using var command = CreateCommand($"TRUNCATE TABLE \"{tableName}\"");
+            await command.ExecuteNonQueryAsync();
+        }
+        
+        
+        private DbCommand CreateCommand(string commandText)
+        {
+            var command = Database.GetDbConnection().CreateCommand();
+            command.CommandType = CommandType.Text;
+            command.CommandText = commandText;
+
+            if (command.Connection.State == ConnectionState.Closed)
+                command.Connection.Open();
+
+            return command;
         }
         
         

@@ -10,7 +10,6 @@ namespace HappyTravel.Data.Models
 {
     public class Location
     {
-        public int Id { get; set; }
         public Point Coordinates { get; set; }
         public string Country { get; set; }
         public int Distance { get; set; }
@@ -49,5 +48,8 @@ namespace HappyTravel.Data.Models
             Distance = distance;
             Source = predictionSources;
         }
+        
+        
+        public int Id { get; set; }
     }
 }

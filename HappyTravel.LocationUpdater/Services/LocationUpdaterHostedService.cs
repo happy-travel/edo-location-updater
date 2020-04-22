@@ -12,6 +12,7 @@ using HappyTravel.Data;
 using HappyTravel.Data.Models;
 using HappyTravel.EdoContracts.GeoData.Enums;
 using HappyTravel.LocationUpdater.Infrastructure;
+using HappyTravel.LocationUpdater.Infrastructure.Extensions;
 using HappyTravel.LocationUpdater.Infrastructure.JsonConverters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,6 +46,9 @@ namespace HappyTravel.LocationUpdater.Services
             _logger.LogInformation(LoggerEvents.ServiceStarting, "Service started");
             try
             {
+                _logger.LogInformation(LoggerEvents.RemovePreviousLocationsFromDb, "Remove previous locations from the database");
+                await RemovePreviousLocations();
+                
                 _logger.LogInformation(LoggerEvents.StartLocationsDownloadingToDb, "Start uploading locations to the database");
                 await DownloadAndMergeLocations();
                 
@@ -63,10 +67,20 @@ namespace HappyTravel.LocationUpdater.Services
         }
 
 
+        private Task RemovePreviousLocations()
+        {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var dbContext = scope.GetLocationUpdaterContext();
+            
+            return dbContext.ClearLocationsTable();
+        }
+        
+
         private async Task UploadLocationsToEdo()
         {
             using var scope = _serviceScopeFactory.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<LocationUpdaterContext>();
+            var dbContext = scope.GetLocationUpdaterContext();
+            
             using var client = _clientFactory.CreateClient(HttpClientNames.EdoApi);
 
             var skip = 0;
@@ -134,7 +148,7 @@ namespace HappyTravel.LocationUpdater.Services
         private async Task UploadLocationsToDb(DataProviders providerType, List<Location> locations)
         {
             using var scope = _serviceScopeFactory.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<LocationUpdaterContext>();
+            var dbContext = scope.GetLocationUpdaterContext();
             
             locations = locations.Select(l =>
             {
@@ -174,11 +188,10 @@ namespace HappyTravel.LocationUpdater.Services
                     var wereLanguagesCombined = false;
                     if (updateLocation != null)
                         wereLanguagesCombined = CombineFieldsWithLanguageIfNeeded(uploadedLocation, updateLocation);
-                
+
                     if (!uploadedLocation.DataProviders.Contains(providerType))
                         uploadedLocation.DataProviders.Add(providerType);
-                    else
-                    if (!wereLanguagesCombined)
+                    else if (!wereLanguagesCombined)
                         uploadedLocations.RemoveAt(i--);
                 }
             }
@@ -189,7 +202,7 @@ namespace HappyTravel.LocationUpdater.Services
                 var defaultName = LanguageHelper.GetValue(location.Name, DefaultLanguageCode);
                 var defaultLocality = LanguageHelper.GetValue(location.Locality, DefaultLanguageCode);
                 var defaultCountry = LanguageHelper.GetValue(location.Country, DefaultLanguageCode);
-                return DeterministicHash.CalculateDeterministicHashCode(defaultName + defaultLocality + defaultCountry + location.Source + location.Type + location.Coordinates);
+                return DeterministicHash.Calculate(defaultName + defaultLocality + defaultCountry + location.Source + location.Type + location.Coordinates);
             }
 
             
@@ -203,19 +216,19 @@ namespace HappyTravel.LocationUpdater.Services
 
             if (original.Name!=null && update.Name != null && !original.Name.Equals(update.Name))
             {
-                original.Name = LanguageHelper.CombineLanguages(original.Name, update.Name);
+                original.Name = LanguageHelper.MergeLanguages(original.Name, update.Name);
                 wereCombined = true;
             }
 
             if (original.Locality!=null && update.Locality != null && !original.Locality.Equals(update.Locality))
             {
-                original.Locality = LanguageHelper.CombineLanguages(original.Locality, update.Locality);
+                original.Locality = LanguageHelper.MergeLanguages(original.Locality, update.Locality);
                 wereCombined = true;
             }
 
             if (original.Country!=null && update.Country != null && !original.Country.Equals(update.Country))
             {
-                original.Country = LanguageHelper.CombineLanguages(original.Country, update.Country);
+                original.Country = LanguageHelper.MergeLanguages(original.Country, update.Country);
                 wereCombined = true;
             }
 
