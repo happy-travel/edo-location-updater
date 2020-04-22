@@ -15,5 +15,12 @@ namespace HappyTravel.LocationUpdater
         public static EventId UploadLocationsRequestSuccess = new EventId(20021);
         public static EventId UploadLocationsRetry = new EventId(20022);
         public static EventId UploadLocationsRetryFailure = new EventId(20023);
+        public static EventId DeserializeConnectorResponseFailure = new EventId(20024);
+        public static EventId StartLocationsDownloadingToDb = new EventId(20025);
+        public static EventId StartLocationsUploadingToEdo = new EventId(20026);
+        public static EventId GetLocationsLastModifiedData = new EventId(20027);
+        public static EventId DownloadLocationsFromConnectorToDb = new EventId(20028);
+        public static EventId UploadLocationsToEdo = new EventId(20029);
+        public static EventId RemovePreviousLocationsFromDb = new EventId(20030);
     }
 }

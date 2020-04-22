@@ -5,6 +5,10 @@ VisualStudioVersion = 16.0.29123.88
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HappyTravel.LocationUpdater", "HappyTravel.LocationUpdater\HappyTravel.LocationUpdater.csproj", "{087B4B8A-DC02-4AD7-9A2A-8C11D5C2B3C7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HappyTravel.Data", "HappyTravel.Data\HappyTravel.Data.csproj", "{B83D9466-F5E9-4BBF-B8E8-237C757BBEB0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{5B692343-C724-431C-B1B5-EA51D081BE99}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{087B4B8A-DC02-4AD7-9A2A-8C11D5C2B3C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{087B4B8A-DC02-4AD7-9A2A-8C11D5C2B3C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{087B4B8A-DC02-4AD7-9A2A-8C11D5C2B3C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B83D9466-F5E9-4BBF-B8E8-237C757BBEB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B83D9466-F5E9-4BBF-B8E8-237C757BBEB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B83D9466-F5E9-4BBF-B8E8-237C757BBEB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B83D9466-F5E9-4BBF-B8E8-237C757BBEB0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B692343-C724-431C-B1B5-EA51D081BE99}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B692343-C724-431C-B1B5-EA51D081BE99}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B692343-C724-431C-B1B5-EA51D081BE99}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B692343-C724-431C-B1B5-EA51D081BE99}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

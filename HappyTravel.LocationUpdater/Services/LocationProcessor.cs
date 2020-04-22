@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using HappyTravel.LocationUpdater.Models;
-using HappyTravel.LocationUpdater.Models.Enums;
+using HappyTravel.Data.Models;
+using HappyTravel.EdoContracts.GeoData.Enums;
 
 namespace HappyTravel.LocationUpdater.Services
 {

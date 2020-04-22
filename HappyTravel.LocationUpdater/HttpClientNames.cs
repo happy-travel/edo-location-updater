@@ -6,5 +6,6 @@ namespace HappyTravel.LocationUpdater
         public const string Identity = "identity";
         public const string NetstormingConnector = "netstorming";
         public const string Illusions = "illusions";
+        public const string Etg = "etg";
     }
 }
