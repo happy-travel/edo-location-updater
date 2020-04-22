@@ -6,9 +6,15 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Infrastructure;
+using Common.Models;
+using HappyTravel.Data;
+using HappyTravel.Data.Models;
+using HappyTravel.EdoContracts.GeoData.Enums;
 using HappyTravel.LocationUpdater.Infrastructure;
-using HappyTravel.LocationUpdater.Models;
-using HappyTravel.LocationUpdater.Models.Enums;
+using HappyTravel.LocationUpdater.Infrastructure.JsonConverters;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,46 +22,34 @@ using Newtonsoft.Json;
 
 namespace HappyTravel.LocationUpdater.Services
 {
-    public class LocationUpdaterHostedService : IHostedService
+    public class LocationUpdaterHostedService : BackgroundService
     {
         public LocationUpdaterHostedService(IHttpClientFactory clientFactory,
             IHostApplicationLifetime applicationLifetime,
             ILogger<LocationUpdaterHostedService> logger,
             IOptions<UpdaterOptions> options,
-            JsonSerializer serializer)
+            JsonSerializer serializer,
+            IServiceScopeFactory serviceScopeFactory)
         {
             _clientFactory = clientFactory;
             _applicationLifetime = applicationLifetime;
             _logger = logger;
             _options = options.Value;
-
             _serializer = serializer;
+            _serviceScopeFactory = serviceScopeFactory;
         }
 
-
-        public Task StartAsync(CancellationToken cancellationToken)
+        
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            return LoadLocations();
-        }
-
-
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
-
-
-        private async Task LoadLocations()
-        {
-            _logger.LogInformation(LoggerEvents.ServiceStarting, "Started loading locations...");
-
+            _logger.LogInformation(LoggerEvents.ServiceStarting, "Service started");
             try
             {
-                var locations = await FetchLocations();
-                var processedLocations = LocationProcessor.ProcessLocations(locations);
-                await UploadLocations(processedLocations);
-
-                _logger.LogInformation(LoggerEvents.ServiceStopping, "Finished loading locations...");
+                _logger.LogInformation(LoggerEvents.StartLocationsDownloadingToDb, "Start uploading locations to the database");
+                await DownloadAndMergeLocations();
+                
+                _logger.LogInformation(LoggerEvents.StartLocationsUploadingToEdo,"Start downloading locations to Edo");
+                await UploadLocationsToEdo();
             }
             catch (Exception ex)
             {
@@ -63,27 +57,219 @@ namespace HappyTravel.LocationUpdater.Services
             }
             finally
             {
+                _logger.LogInformation(LoggerEvents.ServiceStopping, "Service stopped");
                 _applicationLifetime.StopApplication();
             }
         }
 
-        private async Task<List<Location>> FetchLocations()
+
+        private async Task UploadLocationsToEdo()
         {
-            var lastModified = await GetLastModifiedDate();
-            var netstormingLocations = await FetchLocations(HttpClientNames.NetstormingConnector, lastModified);
-            var illusionsLocations = await FetchLocations(HttpClientNames.Illusions, lastModified);
+            using var scope = _serviceScopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<LocationUpdaterContext>();
+            using var client = _clientFactory.CreateClient(HttpClientNames.EdoApi);
 
-            var intersectedLocations = netstormingLocations.Intersect(illusionsLocations).ToList();
+            var skip = 0;
+            var take = _options.BatchSize;
 
-            return netstormingLocations
-                .Except(intersectedLocations)
-                .Select(l => new Location(l, new List<DataProviders> {DataProviders.Netstorming}))
-                .Union(intersectedLocations.Select(l
-                    => new Location(l, new List<DataProviders> {DataProviders.Netstorming, DataProviders.Illusions})))
-                .Union(illusionsLocations.Except(intersectedLocations).Select(l
-                    => new Location(l, new List<DataProviders> {DataProviders.Illusions}))).ToList();
+            List<Location> locations;
+            do
+            {
+                locations = await dbContext.Locations
+                    .OrderBy(l => l.Id)
+                    .Skip(skip)
+                    .Take(take)
+                    .ToListAsync();
+                
+                if (!locations.Any())
+                    break;
+                
+                await UploadBatch(locations, client);
+                
+                _logger.LogInformation(LoggerEvents.UploadLocationsToEdo, $"{skip + locations.Count} locations uploaded from the database to Edo");
+                
+                await Task.Delay(_options.UploadRequestDelay);
+
+                skip += take;
+            } while (locations.Count == take);
         }
 
+
+        private async Task DownloadAndMergeLocations()
+        {
+            var lastModified = await GetLastModifiedDate();
+            _logger.LogInformation(LoggerEvents.GetLocationsLastModifiedData,$"Last modified data from edo is '{lastModified:s}'");
+            
+            foreach (var (providerName, providerValue) in GetDataProviders(_options.DataProviders))
+            {
+                await DownloadAndAddLocationsToDb(providerName, providerValue, lastModified);
+            }
+        }
+
+
+        private async Task DownloadAndAddLocationsToDb(string providerName, DataProviders providerType,
+            DateTime lastModified)
+        {
+            using var httpClient = _clientFactory.CreateClient(providerName);
+            
+            foreach (var locationType in _uploadedLocationTypes)
+            {
+                var take = TakeFromConnectorLocationsCount;
+                var skip = 0;
+                List<Location> locations;
+                do
+                {
+                    locations = await FetchLocations(httpClient, locationType, lastModified, skip, take);
+                    
+                    var processedLocations = LocationProcessor.ProcessLocations(locations);
+                    
+                    await UploadLocationsToDb(providerType, processedLocations);
+                    _logger.LogInformation(LoggerEvents.DownloadLocationsFromConnectorToDb,$"{skip + locations.Count} locations downloaded to the database from {providerName}: ");
+                    skip += take;
+                } while (locations.Count == take);
+            }
+        }
+
+
+        private async Task UploadLocationsToDb(DataProviders providerType, List<Location> locations)
+        {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<LocationUpdaterContext>();
+            
+            locations = locations.Select(l =>
+            {
+                l.Id = CalculateId(l);
+                l.Name = SetBracketsIfEmpty(l.Name);
+                l.Country = SetBracketsIfEmpty(l.Country);
+                l.Locality = SetBracketsIfEmpty(l.Locality);
+                l.DataProviders = new List<DataProviders> {providerType};
+                return l;
+            }).ToList();
+
+            var uploadedLocations = await dbContext.Locations
+                .Where(dbl => locations.Select(l => l.Id).Contains(dbl.Id))
+                .ToListAsync();
+
+            var newLocations = locations.Where(l => !uploadedLocations.Select(ul => ul.Id).Contains(l.Id))
+                .GroupBy(p=>p.Id)
+                .Select(p=>p.First())
+                .ToList();
+
+            UpdateUploadedLocations();
+            
+            dbContext.Locations.UpdateRange(uploadedLocations);
+            
+            dbContext.Locations.AddRange(newLocations);
+
+            await dbContext.SaveChangesAsync();
+
+
+            void UpdateUploadedLocations()
+            {
+                for (var i = 0; i < uploadedLocations.Count; i++)
+                {
+                    var uploadedLocation = uploadedLocations[i];
+                    var updateLocation = locations.FirstOrDefault(l => l.Id == uploadedLocation.Id);
+
+                    var wereLanguagesCombined = false;
+                    if (updateLocation != null)
+                        wereLanguagesCombined = CombineFieldsWithLanguageIfNeeded(uploadedLocation, updateLocation);
+                
+                    if (!uploadedLocation.DataProviders.Contains(providerType))
+                        uploadedLocation.DataProviders.Add(providerType);
+                    else
+                    if (!wereLanguagesCombined)
+                        uploadedLocations.RemoveAt(i--);
+                }
+            }
+            
+            
+            int CalculateId(Location location)
+            {
+                var defaultName = LanguageHelper.GetValue(location.Name, DefaultLanguageCode);
+                var defaultLocality = LanguageHelper.GetValue(location.Locality, DefaultLanguageCode);
+                var defaultCountry = LanguageHelper.GetValue(location.Country, DefaultLanguageCode);
+                return DeterministicHash.CalculateDeterministicHashCode(defaultName + defaultLocality + defaultCountry + location.Source + location.Type + location.Coordinates);
+            }
+
+            
+            string SetBracketsIfEmpty(string value) => string.IsNullOrEmpty(value) ? "{}": value;
+        }
+
+
+        private bool CombineFieldsWithLanguageIfNeeded(Location original, Location update)
+        {
+            var wereCombined = false;
+
+            if (original.Name!=null && update.Name != null && !original.Name.Equals(update.Name))
+            {
+                original.Name = LanguageHelper.CombineLanguages(original.Name, update.Name);
+                wereCombined = true;
+            }
+
+            if (original.Locality!=null && update.Locality != null && !original.Locality.Equals(update.Locality))
+            {
+                original.Locality = LanguageHelper.CombineLanguages(original.Locality, update.Locality);
+                wereCombined = true;
+            }
+
+            if (original.Country!=null && update.Country != null && !original.Country.Equals(update.Country))
+            {
+                original.Country = LanguageHelper.CombineLanguages(original.Country, update.Country);
+                wereCombined = true;
+            }
+
+            return wereCombined;
+        }
+        
+
+        private async Task<List<Location>> FetchLocations(HttpClient httpClient, LocationTypes locationType, DateTime lastModified, int skip, int take)
+        {
+                var requestPath = $"locations/{lastModified:s}?{nameof(locationType)}={(int)locationType}&{nameof(skip)}={skip}&{nameof(take)}={take}";
+                using var response = await httpClient.GetAsync(requestPath);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error =
+                        $"Failed to get locations from {httpClient.BaseAddress}{requestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
+                    _logger.LogError(LoggerEvents.GetLocationsRequestFailure, error);
+                    throw new HttpRequestException(error);
+                }
+
+                _logger.LogInformation(LoggerEvents.GetLocationsRequestSuccess,
+                    $"Locations from {httpClient.BaseAddress}{requestPath} loaded successfully");
+
+                await using var stream = await response.Content.ReadAsStreamAsync();
+                using var streamReader = new StreamReader(stream);
+                try
+                {
+                    using var jsonTextReader = new JsonTextReader(streamReader);
+                    return _serializer.Deserialize<List<Location>>(jsonTextReader);
+                }
+                catch (Exception ex)
+                {
+                    var error =
+                        $"Failed to deserialize locations from {httpClient.BaseAddress}{requestPath}, error: {ex}";
+                    _logger.LogInformation(LoggerEvents.DeserializeConnectorResponseFailure, error);
+                    throw;
+                }
+        }
+        
+        
+        private List<(string dataProvider, DataProviders enumValue)> GetDataProviders(List<string> dataProviders)
+        {
+            var dataProvidersNameAndValue = new List<(string providerName, DataProviders enumValue)>();
+            foreach (var dataProvider in dataProviders)
+            {
+                var dataProviderEnumName = new string(Char.ToUpper(dataProvider[0]) + dataProvider.Substring(1));
+                    
+                if (!Enum.TryParse<DataProviders>(dataProviderEnumName, out var dataProviderEnumValue))
+                    continue;
+                dataProvidersNameAndValue.Add((dataProvider, dataProviderEnumValue));
+            }
+
+            return dataProvidersNameAndValue;
+        }
+        
         
         private async Task<DateTime> GetLastModifiedDate()
         {
@@ -103,63 +289,24 @@ namespace HappyTravel.LocationUpdater.Services
             return lastModified;
         }
 
-
-        private async Task<List<Location>> FetchLocations(string providerName, DateTime lastModified)
-        {
-            using (var client = _clientFactory.CreateClient(providerName))
-                //TODO: get last modified date from db
-            using (var response = await client.GetAsync(GetLocationsRequestPath
-                + lastModified.ToString("s")))
-            {
-                if (!response.IsSuccessStatusCode)
-                {
-                    var error =
-                        $"Failed to get locations from {client.BaseAddress}{GetLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
-                    _logger.LogError(LoggerEvents.GetLocationsRequestFailure, error);
-                    throw new HttpRequestException(error);
-                }
-
-                _logger.LogInformation(LoggerEvents.GetLocationsRequestSuccess,
-                    $"Locations from {client.BaseAddress}{GetLocationsRequestPath} loaded successfully");
-
-                using (var stream = await response.Content.ReadAsStreamAsync())
-                using (var streamReader = new StreamReader(stream))
-                using (var jsonTextReader = new JsonTextReader(streamReader))
-                    return _serializer.Deserialize<List<Location>>(jsonTextReader);
-            }
-        }
-
-        private async Task UploadLocations(List<Location> locations)
-        {
-            using (var client = _clientFactory.CreateClient(HttpClientNames.EdoApi))
-            {
-                foreach (var batch in ListHelper.SplitList(locations, _options.BatchSize))
-                {
-                    await Task.Delay(_options.UploadRequestDelay);
-                    await UploadBatch(batch, client);
-                }
-            }
-        }
-
+        
         private async Task UploadBatch(List<Location> batch, HttpClient client)
         {
             try
             {
-                var json = JsonConvert.SerializeObject(batch);
-                using (var response = await client.PostAsync(UploadLocationsRequestPath,
-                    new StringContent(json, Encoding.UTF8, "application/json")))
+                var json = JsonConvert.SerializeObject(batch, new PointConverter());
+                using var response = await client.PostAsync(UploadLocationsRequestPath,
+                    new StringContent(json, Encoding.UTF8, "application/json"));
+                if (!response.IsSuccessStatusCode)
                 {
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        var error =
-                            $"Failed to upload {batch.Count} locations from {client.BaseAddress}{UploadLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
-                        _logger.LogError(LoggerEvents.UploadLocationsRequestFailure, error);
-                        throw new HttpRequestException(error);
-                    }
-
-                    _logger.LogInformation(LoggerEvents.UploadLocationsRequestSuccess,
-                        $"Uploading {batch.Count} locations to {client.BaseAddress}{UploadLocationsRequestPath} completed successfully");
+                    var error =
+                        $"Failed to upload {batch.Count} locations from {client.BaseAddress}{UploadLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
+                    _logger.LogError(LoggerEvents.UploadLocationsRequestFailure, error);
+                    throw new HttpRequestException(error);
                 }
+
+                _logger.LogInformation(LoggerEvents.UploadLocationsRequestSuccess,
+                    $"Uploading {batch.Count} locations to {client.BaseAddress}{UploadLocationsRequestPath} completed successfully");
             }
             catch (HttpRequestException)
             {
@@ -184,16 +331,23 @@ namespace HappyTravel.LocationUpdater.Services
                 }
             }
         }
+        
 
-        private const string GetLocationsRequestPath = "locations/";
+        private const int TakeFromConnectorLocationsCount = 10000;
         private const string GetLocationsModifiedDateRequestPath = "/en/api/1.0/locations/last-modified-date";
         private const string UploadLocationsRequestPath = "/en/api/1.0/locations";
+        private const string DefaultLanguageCode = "en";
         private readonly IHostApplicationLifetime _applicationLifetime;
-
-
         private readonly IHttpClientFactory _clientFactory;
         private readonly ILogger<LocationUpdaterHostedService> _logger;
         private readonly UpdaterOptions _options;
         private readonly JsonSerializer _serializer;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
+
+        private readonly List<LocationTypes> _uploadedLocationTypes = new List<LocationTypes>
+        {
+            LocationTypes.Location,
+            LocationTypes.Accommodation
+        };
     }
 }
