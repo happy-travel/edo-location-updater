@@ -39,12 +39,12 @@ namespace HappyTravel.Data
         }
 
         
-        public async Task ClearLocationsTable()
+        public void ClearLocationsTable()
         {
             var entity = Model.FindEntityType(typeof(Location));
             var tableName = entity.GetTableName();
-            await using var command = CreateCommand($"TRUNCATE TABLE \"{tableName}\"");
-            await command.ExecuteNonQueryAsync();
+            using var command = CreateCommand($"TRUNCATE TABLE \"{tableName}\"");
+            command.ExecuteNonQuery();
         }
         
         

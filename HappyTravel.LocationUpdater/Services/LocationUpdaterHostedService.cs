@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Common.Infrastructure;
 using Common.Models;
-using HappyTravel.Data;
 using HappyTravel.Data.Models;
 using HappyTravel.EdoContracts.GeoData.Enums;
 using HappyTravel.LocationUpdater.Infrastructure;
@@ -40,19 +39,21 @@ namespace HappyTravel.LocationUpdater.Services
             _serviceScopeFactory = serviceScopeFactory;
         }
 
-        
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation(LoggerEvents.ServiceStarting, "Service started");
             try
             {
-                _logger.LogInformation(LoggerEvents.RemovePreviousLocationsFromDb, "Remove previous locations from the database");
-                await RemovePreviousLocations();
-                
-                _logger.LogInformation(LoggerEvents.StartLocationsDownloadingToDb, "Start uploading locations to the database");
+                _logger.LogInformation(LoggerEvents.RemovePreviousLocationsFromDb,
+                    "Remove previous locations from the database");
+                RemovePreviousLocations();
+
+                _logger.LogInformation(LoggerEvents.StartLocationsDownloadingToDb,
+                    "Start uploading locations to the database");
                 await DownloadAndMergeLocations();
-                
-                _logger.LogInformation(LoggerEvents.StartLocationsUploadingToEdo,"Start downloading locations to Edo");
+
+                _logger.LogInformation(LoggerEvents.StartLocationsUploadingToEdo, "Start downloading locations to Edo");
                 await UploadLocationsToEdo();
             }
             catch (Exception ex)
@@ -67,20 +68,19 @@ namespace HappyTravel.LocationUpdater.Services
         }
 
 
-        private Task RemovePreviousLocations()
+        private void RemovePreviousLocations()
         {
             using var scope = _serviceScopeFactory.CreateScope();
             var dbContext = scope.GetLocationUpdaterContext();
-            
-            return dbContext.ClearLocationsTable();
+            dbContext.ClearLocationsTable();
         }
-        
+
 
         private async Task UploadLocationsToEdo()
         {
             using var scope = _serviceScopeFactory.CreateScope();
             var dbContext = scope.GetLocationUpdaterContext();
-            
+
             using var client = _clientFactory.CreateClient(HttpClientNames.EdoApi);
 
             var skip = 0;
@@ -94,14 +94,15 @@ namespace HappyTravel.LocationUpdater.Services
                     .Skip(skip)
                     .Take(take)
                     .ToListAsync();
-                
+
                 if (!locations.Any())
                     break;
-                
+
                 await UploadBatch(locations, client);
-                
-                _logger.LogInformation(LoggerEvents.UploadLocationsToEdo, $"{skip + locations.Count} locations uploaded from the database to Edo");
-                
+
+                _logger.LogInformation(LoggerEvents.UploadLocationsToEdo,
+                    $"{skip + locations.Count} locations uploaded from the database to Edo");
+
                 await Task.Delay(_options.UploadRequestDelay);
 
                 skip += take;
@@ -112,8 +113,9 @@ namespace HappyTravel.LocationUpdater.Services
         private async Task DownloadAndMergeLocations()
         {
             var lastModified = await GetLastModifiedDate();
-            _logger.LogInformation(LoggerEvents.GetLocationsLastModifiedData,$"Last modified data from edo is '{lastModified:s}'");
-            
+            _logger.LogInformation(LoggerEvents.GetLocationsLastModifiedData,
+                $"Last modified data from edo is '{lastModified:s}'");
+
             foreach (var (providerName, providerValue) in GetDataProviders(_options.DataProviders))
             {
                 await DownloadAndAddLocationsToDb(providerName, providerValue, lastModified);
@@ -125,7 +127,7 @@ namespace HappyTravel.LocationUpdater.Services
             DateTime lastModified)
         {
             using var httpClient = _clientFactory.CreateClient(providerName);
-            
+
             foreach (var locationType in _uploadedLocationTypes)
             {
                 var take = TakeFromConnectorLocationsCount;
@@ -134,11 +136,14 @@ namespace HappyTravel.LocationUpdater.Services
                 do
                 {
                     locations = await FetchLocations(httpClient, locationType, lastModified, skip, take);
-                    
+
                     var processedLocations = LocationProcessor.ProcessLocations(locations);
-                    
+
                     await UploadLocationsToDb(providerType, processedLocations);
-                    _logger.LogInformation(LoggerEvents.DownloadLocationsFromConnectorToDb,$"{skip + locations.Count} locations downloaded to the database from {providerName}: ");
+
+                    _logger.LogInformation(LoggerEvents.DownloadLocationsFromConnectorToDb,
+                        $"{skip + locations.Count} locations downloaded to the database from {providerName}: ");
+
                     skip += take;
                 } while (locations.Count == take);
             }
@@ -149,7 +154,7 @@ namespace HappyTravel.LocationUpdater.Services
         {
             using var scope = _serviceScopeFactory.CreateScope();
             var dbContext = scope.GetLocationUpdaterContext();
-            
+
             locations = locations.Select(l =>
             {
                 l.Id = CalculateId(l);
@@ -165,14 +170,14 @@ namespace HappyTravel.LocationUpdater.Services
                 .ToListAsync();
 
             var newLocations = locations.Where(l => !uploadedLocations.Select(ul => ul.Id).Contains(l.Id))
-                .GroupBy(p=>p.Id)
-                .Select(p=>p.First())
+                .GroupBy(p => p.Id)
+                .Select(p => p.First())
                 .ToList();
 
             UpdateUploadedLocations();
-            
+
             dbContext.Locations.UpdateRange(uploadedLocations);
-            
+
             dbContext.Locations.AddRange(newLocations);
 
             await dbContext.SaveChangesAsync();
@@ -195,18 +200,19 @@ namespace HappyTravel.LocationUpdater.Services
                         uploadedLocations.RemoveAt(i--);
                 }
             }
-            
-            
+
+
             int CalculateId(Location location)
             {
                 var defaultName = LanguageHelper.GetValue(location.Name, DefaultLanguageCode);
                 var defaultLocality = LanguageHelper.GetValue(location.Locality, DefaultLanguageCode);
                 var defaultCountry = LanguageHelper.GetValue(location.Country, DefaultLanguageCode);
-                return DeterministicHash.Calculate(defaultName + defaultLocality + defaultCountry + location.Source + location.Type + location.Coordinates);
+                return DeterministicHash.Calculate(defaultName + defaultLocality + defaultCountry + location.Source +
+                                                   location.Type + location.Coordinates);
             }
 
-            
-            string SetBracketsIfEmpty(string value) => string.IsNullOrEmpty(value) ? "{}": value;
+
+            string SetBracketsIfEmpty(string value) => string.IsNullOrEmpty(value) ? "{}" : value;
         }
 
 
@@ -214,19 +220,19 @@ namespace HappyTravel.LocationUpdater.Services
         {
             var wereCombined = false;
 
-            if (original.Name!=null && update.Name != null && !original.Name.Equals(update.Name))
+            if (original.Name != null && update.Name != null && !original.Name.Equals(update.Name))
             {
                 original.Name = LanguageHelper.MergeLanguages(original.Name, update.Name);
                 wereCombined = true;
             }
 
-            if (original.Locality!=null && update.Locality != null && !original.Locality.Equals(update.Locality))
+            if (original.Locality != null && update.Locality != null && !original.Locality.Equals(update.Locality))
             {
                 original.Locality = LanguageHelper.MergeLanguages(original.Locality, update.Locality);
                 wereCombined = true;
             }
 
-            if (original.Country!=null && update.Country != null && !original.Country.Equals(update.Country))
+            if (original.Country != null && update.Country != null && !original.Country.Equals(update.Country))
             {
                 original.Country = LanguageHelper.MergeLanguages(original.Country, update.Country);
                 wereCombined = true;
@@ -234,47 +240,49 @@ namespace HappyTravel.LocationUpdater.Services
 
             return wereCombined;
         }
-        
 
-        private async Task<List<Location>> FetchLocations(HttpClient httpClient, LocationTypes locationType, DateTime lastModified, int skip, int take)
+
+        private async Task<List<Location>> FetchLocations(HttpClient httpClient, LocationTypes locationType,
+            DateTime lastModified, int skip, int take)
         {
-                var requestPath = $"locations/{lastModified:s}?{nameof(locationType)}={(int)locationType}&{nameof(skip)}={skip}&{nameof(take)}={take}";
-                using var response = await httpClient.GetAsync(requestPath);
-                if (!response.IsSuccessStatusCode)
-                {
-                    var error =
-                        $"Failed to get locations from {httpClient.BaseAddress}{requestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
-                    _logger.LogError(LoggerEvents.GetLocationsRequestFailure, error);
-                    throw new HttpRequestException(error);
-                }
+            var requestPath =
+                $"locations/{lastModified:s}?{nameof(locationType)}={(int) locationType}&{nameof(skip)}={skip}&{nameof(take)}={take}";
+            using var response = await httpClient.GetAsync(requestPath);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error =
+                    $"Failed to get locations from {httpClient.BaseAddress}{requestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
+                _logger.LogError(LoggerEvents.GetLocationsRequestFailure, error);
+                throw new HttpRequestException(error);
+            }
 
-                _logger.LogInformation(LoggerEvents.GetLocationsRequestSuccess,
-                    $"Locations from {httpClient.BaseAddress}{requestPath} loaded successfully");
+            _logger.LogInformation(LoggerEvents.GetLocationsRequestSuccess,
+                $"Locations from {httpClient.BaseAddress}{requestPath} loaded successfully");
 
-                await using var stream = await response.Content.ReadAsStreamAsync();
-                using var streamReader = new StreamReader(stream);
-                try
-                {
-                    using var jsonTextReader = new JsonTextReader(streamReader);
-                    return _serializer.Deserialize<List<Location>>(jsonTextReader);
-                }
-                catch (Exception ex)
-                {
-                    var error =
-                        $"Failed to deserialize locations from {httpClient.BaseAddress}{requestPath}, error: {ex}";
-                    _logger.LogInformation(LoggerEvents.DeserializeConnectorResponseFailure, error);
-                    throw;
-                }
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            using var streamReader = new StreamReader(stream);
+            try
+            {
+                using var jsonTextReader = new JsonTextReader(streamReader);
+                return _serializer.Deserialize<List<Location>>(jsonTextReader);
+            }
+            catch (Exception ex)
+            {
+                var error =
+                    $"Failed to deserialize locations from {httpClient.BaseAddress}{requestPath}, error: {ex}";
+                _logger.LogInformation(LoggerEvents.DeserializeConnectorResponseFailure, error);
+                throw;
+            }
         }
-        
-        
+
+
         private List<(string dataProvider, DataProviders enumValue)> GetDataProviders(List<string> dataProviders)
         {
             var dataProvidersNameAndValue = new List<(string providerName, DataProviders enumValue)>();
             foreach (var dataProvider in dataProviders)
             {
                 var dataProviderEnumName = new string(Char.ToUpper(dataProvider[0]) + dataProvider.Substring(1));
-                    
+
                 if (!Enum.TryParse<DataProviders>(dataProviderEnumName, out var dataProviderEnumValue))
                     continue;
                 dataProvidersNameAndValue.Add((dataProvider, dataProviderEnumValue));
@@ -282,8 +290,8 @@ namespace HappyTravel.LocationUpdater.Services
 
             return dataProvidersNameAndValue;
         }
-        
-        
+
+
         private async Task<DateTime> GetLastModifiedDate()
         {
             using var client = _clientFactory.CreateClient(HttpClientNames.EdoApi);
@@ -298,11 +306,12 @@ namespace HappyTravel.LocationUpdater.Services
             }
 
             var lastModified = JsonConvert.DeserializeObject<DateTime>(await response.Content.ReadAsStringAsync());
-            _logger.LogInformation(LoggerEvents.GetLocationsModifiedRequestSuccess, $"Last locations modified was fetched successfully: '{lastModified}'");
+            _logger.LogInformation(LoggerEvents.GetLocationsModifiedRequestSuccess,
+                $"Last locations modified was fetched successfully: '{lastModified}'");
             return lastModified;
         }
 
-        
+
         private async Task UploadBatch(List<Location> batch, HttpClient client)
         {
             try
@@ -344,7 +353,7 @@ namespace HappyTravel.LocationUpdater.Services
                 }
             }
         }
-        
+
 
         private const int TakeFromConnectorLocationsCount = 10000;
         private const string GetLocationsModifiedDateRequestPath = "/en/api/1.0/locations/last-modified-date";
