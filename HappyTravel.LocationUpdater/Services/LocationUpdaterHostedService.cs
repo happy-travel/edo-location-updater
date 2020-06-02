@@ -315,7 +315,9 @@ namespace HappyTravel.LocationUpdater.Services
         private async Task UploadBatch(List<Location> batch, HttpClient client, int attemptsToUpload = 10)
         {
             var json = JsonConvert.SerializeObject(batch, new PointConverter());
-
+            var failedToUploadLocationsError =
+                $"Failed to upload {batch.Count} locations to {client.BaseAddress}{UploadLocationsRequestPath}.";
+            
             for (var i = 0; i < attemptsToUpload; i++)
             {
                 try
@@ -331,14 +333,16 @@ namespace HappyTravel.LocationUpdater.Services
                     }
                     
                     _logger.LogError(LoggerEvents.UploadLocationsRequestFailure,
-                        $"Failed to upload {batch.Count} locations from {client.BaseAddress}{UploadLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}");
+                        $"{failedToUploadLocationsError} Status code {response.StatusCode}, message: '{response.ReasonPhrase}");
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(LoggerEvents.UploadLocationsRequestFailure,
-                        $"Failed to upload {batch.Count} locations from {client.BaseAddress}{UploadLocationsRequestPath}. Exception occurred:{ex}");
+                        $"{failedToUploadLocationsError} Exception occurred:{ex}");
                 }
             }
+            
+            throw new Exception(failedToUploadLocationsError);
         }
 
 
