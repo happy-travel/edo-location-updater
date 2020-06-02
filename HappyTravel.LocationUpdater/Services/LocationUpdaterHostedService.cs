@@ -312,46 +312,37 @@ namespace HappyTravel.LocationUpdater.Services
         }
 
 
-        private async Task UploadBatch(List<Location> batch, HttpClient client)
+        private async Task UploadBatch(List<Location> batch, HttpClient client, int attemptsToUpload = 10)
         {
-            try
+            var json = JsonConvert.SerializeObject(batch, new PointConverter());
+            var failedToUploadLocationsError =
+                $"Failed to upload {batch.Count} locations to {client.BaseAddress}{UploadLocationsRequestPath}.";
+            
+            for (var i = 0; i < attemptsToUpload; i++)
             {
-                var json = JsonConvert.SerializeObject(batch, new PointConverter());
-                using var response = await client.PostAsync(UploadLocationsRequestPath,
-                    new StringContent(json, Encoding.UTF8, "application/json"));
-                if (!response.IsSuccessStatusCode)
+                try
                 {
-                    var error =
-                        $"Failed to upload {batch.Count} locations from {client.BaseAddress}{UploadLocationsRequestPath} with status code {response.StatusCode}, message: '{response.ReasonPhrase}";
-                    _logger.LogError(LoggerEvents.UploadLocationsRequestFailure, error);
-                    throw new HttpRequestException(error);
+                    using var response = await client.PostAsync(UploadLocationsRequestPath,
+                        new StringContent(json, Encoding.UTF8, "application/json"));
+                    
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _logger.LogInformation(LoggerEvents.UploadLocationsRequestSuccess,
+                            $"Uploading {batch.Count} locations to {client.BaseAddress}{UploadLocationsRequestPath} completed successfully");
+                        return;
+                    }
+                    
+                    _logger.LogError(LoggerEvents.UploadLocationsRequestFailure,
+                        $"{failedToUploadLocationsError} Status code {response.StatusCode}, message: '{response.ReasonPhrase}");
                 }
-
-                _logger.LogInformation(LoggerEvents.UploadLocationsRequestSuccess,
-                    $"Uploading {batch.Count} locations to {client.BaseAddress}{UploadLocationsRequestPath} completed successfully");
-            }
-            catch (HttpRequestException)
-            {
-                // If the batch cannot be divided we cannot do anything
-                if (batch.Count < 2)
+                catch (Exception ex)
                 {
-                    var problemLocationNames = string.Join(";", batch.Select(b => b.Name));
-                    _logger.LogError(LoggerEvents.UploadLocationsRetryFailure,
-                        $"Could not load locations: '{problemLocationNames}'");
-                    throw;
-                }
-
-
-                // We'll try to do this with a smaller portion of locations.
-                var smallerBatches = ListHelper.SplitList(batch, batch.Count / 2);
-                foreach (var smallerBatch in smallerBatches)
-                {
-                    _logger.LogInformation(LoggerEvents.UploadLocationsRetry,
-                        $"Retrying upload locations with smaller batch size {smallerBatch.Count}");
-
-                    await UploadBatch(smallerBatch, client);
+                    _logger.LogError(LoggerEvents.UploadLocationsRequestFailure,
+                        $"{failedToUploadLocationsError} Exception occurred:{ex}");
                 }
             }
+            
+            throw new Exception(failedToUploadLocationsError);
         }
 
 
