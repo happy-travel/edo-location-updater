@@ -95,16 +95,16 @@ namespace HappyTravel.LocationUpdater
 
             services.Configure<UpdaterOptions>(o =>
             {
-                var batchSizeSetting = Environment.GetEnvironmentVariable("BatchSize");
+                var batchSizeSetting = Environment.GetEnvironmentVariable("BATCH_SIZE");
 
                 o.BatchSize = int.TryParse(batchSizeSetting, out var batchSize)
                     ? batchSize
-                    : 100;
+                    : 2000;
 
-                var requestDelaySetting = Environment.GetEnvironmentVariable("RequestDelay");
+                var requestDelaySetting = Environment.GetEnvironmentVariable("REQUEST_DELAY");
                 o.UploadRequestDelay = int.TryParse(requestDelaySetting, out var requestDelayMilliseconds)
                     ? TimeSpan.FromMilliseconds(requestDelayMilliseconds)
-                    : TimeSpan.FromMilliseconds(50);
+                    : TimeSpan.FromMilliseconds(150);
 
                 o.DataProviders = dataProviders.Select(i => i.Key).ToList();
             });
