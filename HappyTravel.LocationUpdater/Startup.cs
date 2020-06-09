@@ -55,7 +55,7 @@ namespace HappyTravel.LocationUpdater
                 .ToDictionary(i => i.Key, j => j.Value);
 
             var updaterOptions = vaultClient.Get(Configuration["DataProviders:Options"]).Result;
-            var enabledConnectors = updaterOptions["enabledConnectors"].Split(';').Select(i=>i.Trim());
+            var enabledProviders = updaterOptions["enabled"].Split(';').Select(i=>i.Trim());
             
             var connectionString = StartupHelper.GetDbConnectionString(vaultClient, Configuration);
             services.AddDbContext<LocationUpdaterContext>(options =>
@@ -66,7 +66,6 @@ namespace HappyTravel.LocationUpdater
                 options.EnableSensitiveDataLogging(false);
                 options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
             });
-
 
             services.AddTransient<ProtectedApiBearerTokenHandler>();
             services.AddTransient<JsonSerializer>();
@@ -94,7 +93,7 @@ namespace HappyTravel.LocationUpdater
                 .SetHandlerLifetime(TimeSpan.FromMinutes(5))
                 .AddHttpMessageHandler<ProtectedApiBearerTokenHandler>();
 
-            AddDataProvidersHttpClients(services, dataProviderPaths, enabledConnectors);
+            AddDataProvidersHttpClients(services, dataProviderPaths, enabledProviders);
 
             services.Configure<UpdaterOptions>(o =>
             {
@@ -109,7 +108,7 @@ namespace HappyTravel.LocationUpdater
                     ? TimeSpan.FromMilliseconds(requestDelayMilliseconds)
                     : TimeSpan.FromMilliseconds(150);
 
-                o.Connectors = enabledConnectors;
+                o.DataProviders = enabledProviders;
             });
             
             services.AddHostedService<LocationUpdaterHostedService>();

@@ -116,7 +116,7 @@ namespace HappyTravel.LocationUpdater.Services
             _logger.LogInformation(LoggerEvents.GetLocationsLastModifiedData,
                 $"Last modified data from edo is '{lastModified:s}'");
 
-            foreach (var (providerName, providerValue) in GetDataProviders(_options.Connectors))
+            foreach (var (providerName, providerValue) in GetDataProviders(_options.DataProviders))
             {
                 await DownloadAndAddLocationsToDb(providerName, providerValue, lastModified);
             }
