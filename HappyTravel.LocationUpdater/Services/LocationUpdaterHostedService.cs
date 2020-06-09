@@ -10,7 +10,6 @@ using Common.Infrastructure;
 using Common.Models;
 using HappyTravel.Data.Models;
 using HappyTravel.EdoContracts.GeoData.Enums;
-using HappyTravel.LocationUpdater.Infrastructure;
 using HappyTravel.LocationUpdater.Infrastructure.Extensions;
 using HappyTravel.LocationUpdater.Infrastructure.JsonConverters;
 using Microsoft.EntityFrameworkCore;
@@ -113,10 +112,11 @@ namespace HappyTravel.LocationUpdater.Services
         private async Task DownloadAndMergeLocations()
         {
             var lastModified = await GetLastModifiedDate();
+            
             _logger.LogInformation(LoggerEvents.GetLocationsLastModifiedData,
                 $"Last modified data from edo is '{lastModified:s}'");
 
-            foreach (var (providerName, providerValue) in GetDataProviders(_options.DataProviders))
+            foreach (var (providerName, providerValue) in GetDataProviders(_options.Connectors))
             {
                 await DownloadAndAddLocationsToDb(providerName, providerValue, lastModified);
             }
@@ -276,7 +276,7 @@ namespace HappyTravel.LocationUpdater.Services
         }
 
 
-        private List<(string dataProvider, DataProviders enumValue)> GetDataProviders(List<string> dataProviders)
+        private List<(string dataProvider, DataProviders enumValue)> GetDataProviders(IEnumerable<string> dataProviders)
         {
             var dataProvidersNameAndValue = new List<(string providerName, DataProviders enumValue)>();
             foreach (var dataProvider in dataProviders)
