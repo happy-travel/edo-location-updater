@@ -32,7 +32,10 @@ namespace HappyTravel.LocationUpdater.Infrastructure
             // We need to cache token because users can send several requests in short periods.
             // Covered situation when after checking expireDate token will expire immediately.
             if (!_tokenInfo.Equals(default) && (_tokenInfo.ExpiryDate - dateNow).TotalSeconds >= 5)
+            {
+                TokenSemaphore.Release();
                 return _tokenInfo.Token;
+            }
 
             using var client = _clientFactory.CreateClient(HttpClientNames.Identity);
             var clientCredentialsTokenRequest = new ClientCredentialsTokenRequest
