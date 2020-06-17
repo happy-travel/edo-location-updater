@@ -7,9 +7,10 @@ using Microsoft.Extensions.Options;
 
 namespace HappyTravel.LocationUpdater.Infrastructure
 {
-    public class ProtectedApiBearerTokenHandler : DelegatingHandler
+    // TODO: NIJO-692 - fix code duplication
+    public class ConnectorsBearerTokenHandler : DelegatingHandler
     {
-        public ProtectedApiBearerTokenHandler(IHttpClientFactory clientFactory, IOptions<TokenRequest> tokenRequest)
+        public ConnectorsBearerTokenHandler(IHttpClientFactory clientFactory, IOptions<TokenRequest> tokenRequest)
         {
             _clientFactory = clientFactory;
             _tokenRequest = tokenRequest.Value;
@@ -43,7 +44,7 @@ namespace HappyTravel.LocationUpdater.Infrastructure
                 Address = _tokenRequest.Address,
                 ClientId = _tokenRequest.ClientId,
                 ClientSecret = _tokenRequest.ClientSecret,
-                Scope = "edo"
+                Scope = "connectors"
             };
 
             var tokenResponse = await client.RequestClientCredentialsTokenAsync(clientCredentialsTokenRequest);
@@ -59,7 +60,6 @@ namespace HappyTravel.LocationUpdater.Infrastructure
 
         private readonly IHttpClientFactory _clientFactory;
         private readonly TokenRequest _tokenRequest;
-
         private static (string Token, DateTime ExpiryDate) _tokenInfo;
         private static readonly SemaphoreSlim TokenSemaphore = new SemaphoreSlim(1, 1);
     }
