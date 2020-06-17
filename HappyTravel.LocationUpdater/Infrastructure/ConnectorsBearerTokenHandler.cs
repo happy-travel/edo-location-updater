@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace HappyTravel.LocationUpdater.Infrastructure
 {
+    // TODO: NIJO-692 - fix code duplication
     public class ConnectorsBearerTokenHandler : DelegatingHandler
     {
         public ConnectorsBearerTokenHandler(IHttpClientFactory clientFactory, IOptions<TokenRequest> tokenRequest)
