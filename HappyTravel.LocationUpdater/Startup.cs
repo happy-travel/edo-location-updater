@@ -5,7 +5,6 @@ using Common;
 using HappyTravel.Data;
 using HappyTravel.LocationUpdater.Infrastructure;
 using HappyTravel.LocationUpdater.Services;
-using IdentityModel.Client;
 using LocationNameNormalizer.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -34,9 +33,6 @@ namespace HappyTravel.LocationUpdater
             };
             JsonConvert.DefaultSettings = () => serializationSettings;
 
-            string clientSecret;
-            string authorityUrl;
-            string edoApiUrl;
             Dictionary<string, string> dataProviderPaths = null;
 
             using var vaultClient = StartupHelper.CreateVaultClient(Configuration);
@@ -44,11 +40,11 @@ namespace HappyTravel.LocationUpdater
             vaultClient.Login(GetFromEnvironment("Vault:Token")).Wait();
 
             var jobsSettings = vaultClient.Get(Configuration["Identity:JobsOptions"]).Result;
-            clientSecret = jobsSettings[Configuration["Identity:Secret"]];
+            var clientSecret = jobsSettings[Configuration["Identity:Secret"]];
 
             var edoSettings = vaultClient.Get(Configuration["Edo:EdoOptions"]).Result;
-            authorityUrl = edoSettings[Configuration["Identity:Authority"]];
-            edoApiUrl = edoSettings[Configuration["Edo:Api"]];
+            string authorityUrl = edoSettings[Configuration["Identity:Authority"]];
+            string edoApiUrl = edoSettings[Configuration["Edo:Api"]];
 
             dataProviderPaths = vaultClient.Get(Configuration["DataProviders:Paths"]).Result
                 .Where(i => i.Key != "enabledConnectors")
@@ -68,22 +64,29 @@ namespace HappyTravel.LocationUpdater
             });
 
             services.AddTransient<ProtectedApiBearerTokenHandler>();
-            services.AddTransient<ConnectorsBearerTokenHandler>();
+            services.AddSingleton<TokenProvider>();
             services.AddTransient<JsonSerializer>();
 
-            services.Configure<TokenRequest>(options =>
+            services.Configure<TokenRequestSettings>(options =>
             {
                 var uri = new Uri(new Uri(authorityUrl), "/connect/token");
-                options.Address = uri.ToString();
+                options.TokenRequestUrl = uri.ToString();
                 options.ClientId = Configuration["Identity:ClientId"];
                 options.ClientSecret = clientSecret;
+                options.Scopes = new[] {"edo", "connectors"};
+
+                var disableCachingSetting = Environment.GetEnvironmentVariable("DISABLE_TOKEN_CACHE");
+
+                options.IsCachingDisabled = bool.TryParse(disableCachingSetting, out var disableCache)
+                    ? disableCache
+                    : false;
             });
 
             services.AddHttpClient(HttpClientNames.Identity, client =>
             {
                 client.BaseAddress = new Uri(authorityUrl);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
-            });
+            }).AddPolicyHandler(HttpClientPolicies.GetRetryPolicy());
 
             services.AddHttpClient(HttpClientNames.EdoApi, client =>
                 {
@@ -91,6 +94,7 @@ namespace HappyTravel.LocationUpdater
                     client.Timeout = TimeSpan.FromMinutes(5);
                 })
                 .SetHandlerLifetime(TimeSpan.FromMinutes(5))
+                .AddPolicyHandler(HttpClientPolicies.GetRetryPolicy())
                 .AddHttpMessageHandler<ProtectedApiBearerTokenHandler>();
 
             AddDataProvidersHttpClients(services, dataProviderPaths, enabledProviders);
@@ -130,7 +134,7 @@ namespace HappyTravel.LocationUpdater
                         client.Timeout = TimeSpan.FromMinutes(10);
                     }).SetHandlerLifetime(TimeSpan.FromMinutes(10))
                     .AddPolicyHandler(HttpClientPolicies.GetRetryPolicy())
-                    .AddHttpMessageHandler<ConnectorsBearerTokenHandler>();
+                    .AddHttpMessageHandler<ProtectedApiBearerTokenHandler>();
             }
 
             return services;
