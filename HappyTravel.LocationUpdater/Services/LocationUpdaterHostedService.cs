@@ -58,12 +58,11 @@ namespace HappyTravel.LocationUpdater.Services
             catch (Exception ex)
             {
                 _logger.LogError(LoggerEvents.ServiceError, ex.Message);
+                throw;
             }
-            finally
-            {
-                _logger.LogInformation(LoggerEvents.ServiceStopping, "Service stopped");
-                _applicationLifetime.StopApplication();
-            }
+
+            _logger.LogInformation(LoggerEvents.ServiceStopping, "Service stopped");
+            _applicationLifetime.StopApplication();
         }
 
 
