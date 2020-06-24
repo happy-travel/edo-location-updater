@@ -86,7 +86,7 @@ namespace HappyTravel.LocationUpdater
             {
                 client.BaseAddress = new Uri(authorityUrl);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
-            }).AddPolicyHandler(HttpClientPolicies.GetRetryPolicy());
+            }).AddPolicyHandler(HttpClientPolicies.GetStandardRetryPolicy());
 
             services.AddHttpClient(HttpClientNames.EdoApi, client =>
                 {
@@ -94,7 +94,7 @@ namespace HappyTravel.LocationUpdater
                     client.Timeout = TimeSpan.FromMinutes(5);
                 })
                 .SetHandlerLifetime(TimeSpan.FromMinutes(5))
-                .AddPolicyHandler(HttpClientPolicies.GetRetryPolicy())
+                .AddPolicyHandler(HttpClientPolicies.GetStandardRetryPolicy())
                 .AddHttpMessageHandler<ProtectedApiBearerTokenHandler>();
 
             AddDataProvidersHttpClients(services, dataProviderPaths, enabledProviders);
@@ -133,7 +133,7 @@ namespace HappyTravel.LocationUpdater
                         client.DefaultRequestHeaders.Add("Accept", "application/json");
                         client.Timeout = TimeSpan.FromMinutes(10);
                     }).SetHandlerLifetime(TimeSpan.FromMinutes(10))
-                    .AddPolicyHandler(HttpClientPolicies.GetRetryPolicy())
+                    .AddPolicyHandler(HttpClientPolicies.GetStandardRetryPolicy())
                     .AddHttpMessageHandler<ProtectedApiBearerTokenHandler>();
             }
 
