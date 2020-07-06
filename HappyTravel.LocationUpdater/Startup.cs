@@ -113,6 +113,9 @@ namespace HappyTravel.LocationUpdater
                     : TimeSpan.FromMilliseconds(150);
 
                 o.DataProviders = enabledProviders;
+                o.UpdateMode = Enum.TryParse<UpdateMode>(Environment.GetEnvironmentVariable("UPDATE_MODE"), out var updateMode)
+                    ? updateMode
+                    : UpdateMode.Differential;
             });
 
             services.AddHostedService<LocationUpdaterHostedService>();

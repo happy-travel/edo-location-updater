@@ -293,6 +293,9 @@ namespace HappyTravel.LocationUpdater.Services
 
         private async Task<DateTime> GetLastModifiedDate()
         {
+            if (_options.UpdateMode == UpdateMode.Full)
+                return DateTime.MinValue;
+            
             using var edoClient = _clientFactory.CreateClient(HttpClientNames.EdoApi);
             using var response = await edoClient.GetAsync(GetLocationsModifiedDateRequestPath);
 
