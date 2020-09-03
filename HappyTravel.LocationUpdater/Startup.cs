@@ -50,8 +50,18 @@ namespace HappyTravel.LocationUpdater
                 .Where(i => i.Key != "enabledConnectors")
                 .ToDictionary(i => i.Key, j => j.Value);
 
-            var updaterOptions = vaultClient.Get(Configuration["DataProviders:Options"]).Result;
-            var enabledProviders = updaterOptions["enabled"].Split(';').Select(i => i.Trim());
+            IEnumerable<string> enabledProviders;
+            var providerSettingsFromEnvironment = Environment.GetEnvironmentVariable("DATA_PROVIDERS");
+            if (providerSettingsFromEnvironment != null)
+            {
+                enabledProviders = providerSettingsFromEnvironment.Split(';').Select(i => i.Trim());
+            }
+            else
+            {
+                var updaterOptions = vaultClient.Get(Configuration["DataProviders:Options"]).Result;
+                enabledProviders = updaterOptions["enabled"].Split(';').Select(i => i.Trim());
+            }
+            
 
             var connectionString = StartupHelper.GetDbConnectionString(vaultClient, Configuration);
             services.AddDbContext<LocationUpdaterContext>(options =>
