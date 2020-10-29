@@ -111,7 +111,7 @@ namespace HappyTravel.LocationUpdater.Services
         private async Task DownloadAndMergeLocations()
         {
             var lastModified = await GetLastModifiedDate();
-            
+
             _logger.LogInformation(LoggerEvents.GetLocationsLastModifiedData,
                 $"Last modified data from edo is '{lastModified:s}'");
 
@@ -206,8 +206,7 @@ namespace HappyTravel.LocationUpdater.Services
                 var defaultName = LanguageHelper.GetValue(location.Name, DefaultLanguageCode);
                 var defaultLocality = LanguageHelper.GetValue(location.Locality, DefaultLanguageCode);
                 var defaultCountry = LanguageHelper.GetValue(location.Country, DefaultLanguageCode);
-                return DeterministicHash.Calculate(defaultName + defaultLocality + defaultCountry + location.Source +
-                                                   location.Type + location.Coordinates);
+                return DeterministicHash.Calculate(defaultName + defaultLocality + defaultCountry + location.Source + location.Type);
             }
 
 
@@ -284,6 +283,7 @@ namespace HappyTravel.LocationUpdater.Services
 
                 if (!Enum.TryParse<DataProviders>(dataProviderEnumName, out var dataProviderEnumValue))
                     continue;
+
                 dataProvidersNameAndValue.Add((dataProvider, dataProviderEnumValue));
             }
 
@@ -295,7 +295,7 @@ namespace HappyTravel.LocationUpdater.Services
         {
             if (_options.UpdateMode == UpdateMode.Full)
                 return DateTime.MinValue;
-            
+
             using var edoClient = _clientFactory.CreateClient(HttpClientNames.EdoApi);
             using var response = await edoClient.GetAsync(GetLocationsModifiedDateRequestPath);
 
@@ -319,21 +319,21 @@ namespace HappyTravel.LocationUpdater.Services
             var json = JsonConvert.SerializeObject(batch, new PointConverter());
             var failedToUploadLocationsError =
                 $"Failed to upload {batch.Count} locations to {client.BaseAddress}{UploadLocationsRequestPath}.";
-            
+
             for (var i = 0; i < attemptsToUpload; i++)
             {
                 try
                 {
                     using var response = await client.PostAsync(UploadLocationsRequestPath,
                         new StringContent(json, Encoding.UTF8, "application/json"));
-                    
+
                     if (response.IsSuccessStatusCode)
                     {
                         _logger.LogInformation(LoggerEvents.UploadLocationsRequestSuccess,
                             $"Uploading {batch.Count} locations to {client.BaseAddress}{UploadLocationsRequestPath} completed successfully");
                         return;
                     }
-                    
+
                     _logger.LogError(LoggerEvents.UploadLocationsRequestFailure,
                         $"{failedToUploadLocationsError} Status code {response.StatusCode}, message: '{response.ReasonPhrase}");
                 }
@@ -343,7 +343,7 @@ namespace HappyTravel.LocationUpdater.Services
                         $"{failedToUploadLocationsError} Exception occurred:{ex}");
                 }
             }
-            
+
             throw new Exception(failedToUploadLocationsError);
         }
 
