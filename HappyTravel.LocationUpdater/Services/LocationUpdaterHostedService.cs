@@ -348,7 +348,7 @@ namespace HappyTravel.LocationUpdater.Services
         }
 
 
-        private const int TakeFromConnectorLocationsCount = 10000;
+        private const int TakeFromConnectorLocationsCount = 3000;
         private const string GetLocationsModifiedDateRequestPath = "/en/api/1.0/locations/last-modified-date";
         private const string UploadLocationsRequestPath = "/en/api/1.0/locations";
         private const string DefaultLanguageCode = "en";
