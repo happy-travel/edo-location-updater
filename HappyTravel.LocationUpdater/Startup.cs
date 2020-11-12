@@ -33,7 +33,7 @@ namespace HappyTravel.LocationUpdater
             };
             JsonConvert.DefaultSettings = () => serializationSettings;
 
-            Dictionary<string, string> dataProviderPaths = null;
+            Dictionary<string, string> supplierPaths = null;
 
             using var vaultClient = StartupHelper.CreateVaultClient(Configuration);
 
@@ -46,20 +46,20 @@ namespace HappyTravel.LocationUpdater
             string authorityUrl = edoSettings[Configuration["Identity:Authority"]];
             string edoApiUrl = edoSettings[Configuration["Edo:Api"]];
 
-            dataProviderPaths = vaultClient.Get(Configuration["DataProviders:Paths"]).Result
+            supplierPaths = vaultClient.Get(Configuration["Suppliers:Paths"]).Result
                 .Where(i => i.Key != "enabledConnectors")
                 .ToDictionary(i => i.Key, j => j.Value);
 
-            IEnumerable<string> enabledProviders;
+            IEnumerable<string> enabledSuppliers;
             var providerSettingsFromEnvironment = Environment.GetEnvironmentVariable("DATA_PROVIDERS");
             if (providerSettingsFromEnvironment != null)
             {
-                enabledProviders = providerSettingsFromEnvironment.Split(';').Select(i => i.Trim());
+                enabledSuppliers = providerSettingsFromEnvironment.Split(';').Select(i => i.Trim());
             }
             else
             {
-                var updaterOptions = vaultClient.Get(Configuration["DataProviders:Options"]).Result;
-                enabledProviders = updaterOptions["enabled"].Split(';').Select(i => i.Trim());
+                var updaterOptions = vaultClient.Get(Configuration["Suppliers:Options"]).Result;
+                enabledSuppliers = updaterOptions["enabled"].Split(';').Select(i => i.Trim());
             }
             
 
@@ -107,7 +107,7 @@ namespace HappyTravel.LocationUpdater
                 .AddPolicyHandler(HttpClientPolicies.GetStandardRetryPolicy())
                 .AddHttpMessageHandler<ProtectedApiBearerTokenHandler>();
 
-            AddDataProvidersHttpClients(services, dataProviderPaths, enabledProviders);
+            AddConnectorsHttpClients(services, supplierPaths, enabledSuppliers);
 
             services.Configure<UpdaterOptions>(o =>
             {
@@ -122,7 +122,7 @@ namespace HappyTravel.LocationUpdater
                     ? TimeSpan.FromMilliseconds(requestDelayMilliseconds)
                     : TimeSpan.FromMilliseconds(150);
 
-                o.DataProviders = enabledProviders;
+                o.Suppliers = enabledSuppliers;
                 o.UpdateMode = Enum.TryParse<UpdateMode>(Environment.GetEnvironmentVariable("UPDATE_MODE"), out var updateMode)
                     ? updateMode
                     : UpdateMode.Differential;
@@ -135,12 +135,12 @@ namespace HappyTravel.LocationUpdater
         }
 
 
-        private IServiceCollection AddDataProvidersHttpClients(IServiceCollection services,
-            Dictionary<string, string> dataProviderPaths, IEnumerable<string> enabledConnectors)
+        private IServiceCollection AddConnectorsHttpClients(IServiceCollection services,
+            Dictionary<string, string> supplierPaths, IEnumerable<string> enabledConnectors)
         {
-            foreach (var (providerKey, basePath) in dataProviderPaths.Where(kv => enabledConnectors.Contains(kv.Key)))
+            foreach (var (supplierKey, basePath) in supplierPaths.Where(kv => enabledConnectors.Contains(kv.Key)))
             {
-                services.AddHttpClient(providerKey, client =>
+                services.AddHttpClient(supplierKey, client =>
                     {
                         client.BaseAddress = client.BaseAddress = new Uri(basePath);
                         client.DefaultRequestHeaders.Add("Accept", "application/json");

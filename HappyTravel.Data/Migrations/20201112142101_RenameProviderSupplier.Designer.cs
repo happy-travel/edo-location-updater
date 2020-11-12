@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HappyTravel.Data.Migrations
 {
     [DbContext(typeof(LocationUpdaterContext))]
-    [Migration("20200420212700_AddLocationsTable")]
-    partial class AddLocationsTable
+    [Migration("20201112142101_RenameProviderSupplier")]
+    partial class RenameProviderSupplier
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -35,11 +35,6 @@ namespace HappyTravel.Data.Migrations
                     b.Property<string>("Country")
                         .HasColumnType("jsonb");
 
-                    b.Property<List<Suppliers>>("DataProviders")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("jsonb")
-                        .HasDefaultValueSql("'[]'::jsonb");
-
                     b.Property<int>("Distance")
                         .HasColumnType("integer");
 
@@ -51,6 +46,9 @@ namespace HappyTravel.Data.Migrations
 
                     b.Property<int>("Source")
                         .HasColumnType("integer");
+
+                    b.Property<List<Suppliers>>("Suppliers")
+                        .HasColumnType("jsonb");
 
                     b.Property<int>("Type")
                         .HasColumnType("integer");
