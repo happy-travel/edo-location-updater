@@ -122,10 +122,10 @@ namespace HappyTravel.LocationUpdater.Services
         }
 
 
-        private async Task DownloadAndAddLocationsToDb(string providerName, Suppliers providerType,
+        private async Task DownloadAndAddLocationsToDb(string supplierName, Suppliers supplierType,
             DateTime lastModified)
         {
-            using var httpClient = _clientFactory.CreateClient(providerName);
+            using var httpClient = _clientFactory.CreateClient(supplierName);
 
             foreach (var locationType in _uploadedLocationTypes)
             {
@@ -138,10 +138,10 @@ namespace HappyTravel.LocationUpdater.Services
 
                     var processedLocations = LocationProcessor.ProcessLocations(locations);
 
-                    await UploadLocationsToDb(providerType, processedLocations);
+                    await UploadLocationsToDb(supplierType, processedLocations);
 
                     _logger.LogInformation(LoggerEvents.DownloadLocationsFromConnectorToDb,
-                        $"{skip + locations.Count} locations downloaded to the database from {providerName}: ");
+                        $"{skip + locations.Count} locations downloaded to the database from {supplierName}: ");
 
                     skip += take;
                 } while (locations.Count == take);
@@ -149,7 +149,7 @@ namespace HappyTravel.LocationUpdater.Services
         }
 
 
-        private async Task UploadLocationsToDb(Suppliers providerType, List<Location> locations)
+        private async Task UploadLocationsToDb(Suppliers supplierType, List<Location> locations)
         {
             using var scope = _serviceScopeFactory.CreateScope();
             var dbContext = scope.GetLocationUpdaterContext();
@@ -160,7 +160,7 @@ namespace HappyTravel.LocationUpdater.Services
                 l.Name = SetBracketsIfEmpty(l.Name);
                 l.Country = SetBracketsIfEmpty(l.Country);
                 l.Locality = SetBracketsIfEmpty(l.Locality);
-                l.Suppliers = new List<Suppliers> {providerType};
+                l.Suppliers = new List<Suppliers> {supplierType};
                 return l;
             }).ToList();
 
@@ -193,8 +193,8 @@ namespace HappyTravel.LocationUpdater.Services
                     if (updateLocation != null)
                         wereLanguagesCombined = CombineFieldsWithLanguageIfNeeded(uploadedLocation, updateLocation);
 
-                    if (!uploadedLocation.Suppliers.Contains(providerType))
-                        uploadedLocation.Suppliers.Add(providerType);
+                    if (!uploadedLocation.Suppliers.Contains(supplierType))
+                        uploadedLocation.Suppliers.Add(supplierType);
                     else if (!wereLanguagesCombined)
                         uploadedLocations.RemoveAt(i--);
                 }
@@ -274,7 +274,7 @@ namespace HappyTravel.LocationUpdater.Services
         }
 
 
-        private List<(string dataProvider, Suppliers enumValue)> GetSuppliers(IEnumerable<string> suppliers)
+        private List<(string supplier, Suppliers enumValue)> GetSuppliers(IEnumerable<string> suppliers)
         {
             var supplierNameAndValue = new List<(string providerName, Suppliers enumValue)>();
             foreach (var supplier in suppliers)

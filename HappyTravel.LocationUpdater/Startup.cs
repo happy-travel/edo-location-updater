@@ -51,10 +51,10 @@ namespace HappyTravel.LocationUpdater
                 .ToDictionary(i => i.Key, j => j.Value);
 
             IEnumerable<string> enabledSuppliers;
-            var providerSettingsFromEnvironment = Environment.GetEnvironmentVariable("DATA_PROVIDERS");
-            if (providerSettingsFromEnvironment != null)
+            var supplierSettingsFromEnvironment = Environment.GetEnvironmentVariable("DATA_PROVIDERS");
+            if (supplierSettingsFromEnvironment != null)
             {
-                enabledSuppliers = providerSettingsFromEnvironment.Split(';').Select(i => i.Trim());
+                enabledSuppliers = supplierSettingsFromEnvironment.Split(';').Select(i => i.Trim());
             }
             else
             {
