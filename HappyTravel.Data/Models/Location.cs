@@ -17,7 +17,7 @@ namespace HappyTravel.Data.Models
         public string Name { get; set; }
         public PredictionSources Source { get; set; }
         public LocationTypes Type { get; set; }
-        public List<DataProviders> DataProviders { get; set; }
+        public List<Suppliers> Suppliers { get; set; }
 
         
         public Location(){}
@@ -44,7 +44,7 @@ namespace HappyTravel.Data.Models
             Locality = location.Locality;
             Name = location.Name;
             Type = location.Type;
-            DataProviders = location.DataProviders;
+            Suppliers = location.Suppliers;
             Distance = distance;
             Source = predictionSources;
         }

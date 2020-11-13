@@ -115,17 +115,17 @@ namespace HappyTravel.LocationUpdater.Services
             _logger.LogInformation(LoggerEvents.GetLocationsLastModifiedData,
                 $"Last modified data from edo is '{lastModified:s}'");
 
-            foreach (var (providerName, providerValue) in GetDataProviders(_options.DataProviders))
+            foreach (var (supplierName, supplierValue) in GetSuppliers(_options.Suppliers))
             {
-                await DownloadAndAddLocationsToDb(providerName, providerValue, lastModified);
+                await DownloadAndAddLocationsToDb(supplierName, supplierValue, lastModified);
             }
         }
 
 
-        private async Task DownloadAndAddLocationsToDb(string providerName, DataProviders providerType,
+        private async Task DownloadAndAddLocationsToDb(string supplierName, Suppliers supplierType,
             DateTime lastModified)
         {
-            using var httpClient = _clientFactory.CreateClient(providerName);
+            using var httpClient = _clientFactory.CreateClient(supplierName);
 
             foreach (var locationType in _uploadedLocationTypes)
             {
@@ -138,10 +138,10 @@ namespace HappyTravel.LocationUpdater.Services
 
                     var processedLocations = LocationProcessor.ProcessLocations(locations);
 
-                    await UploadLocationsToDb(providerType, processedLocations);
+                    await UploadLocationsToDb(supplierType, processedLocations);
 
                     _logger.LogInformation(LoggerEvents.DownloadLocationsFromConnectorToDb,
-                        $"{skip + locations.Count} locations downloaded to the database from {providerName}: ");
+                        $"{skip + locations.Count} locations downloaded to the database from {supplierName}: ");
 
                     skip += take;
                 } while (locations.Count == take);
@@ -149,7 +149,7 @@ namespace HappyTravel.LocationUpdater.Services
         }
 
 
-        private async Task UploadLocationsToDb(DataProviders providerType, List<Location> locations)
+        private async Task UploadLocationsToDb(Suppliers supplierType, List<Location> locations)
         {
             using var scope = _serviceScopeFactory.CreateScope();
             var dbContext = scope.GetLocationUpdaterContext();
@@ -160,7 +160,7 @@ namespace HappyTravel.LocationUpdater.Services
                 l.Name = SetBracketsIfEmpty(l.Name);
                 l.Country = SetBracketsIfEmpty(l.Country);
                 l.Locality = SetBracketsIfEmpty(l.Locality);
-                l.DataProviders = new List<DataProviders> {providerType};
+                l.Suppliers = new List<Suppliers> {supplierType};
                 return l;
             }).ToList();
 
@@ -193,8 +193,8 @@ namespace HappyTravel.LocationUpdater.Services
                     if (updateLocation != null)
                         wereLanguagesCombined = CombineFieldsWithLanguageIfNeeded(uploadedLocation, updateLocation);
 
-                    if (!uploadedLocation.DataProviders.Contains(providerType))
-                        uploadedLocation.DataProviders.Add(providerType);
+                    if (!uploadedLocation.Suppliers.Contains(supplierType))
+                        uploadedLocation.Suppliers.Add(supplierType);
                     else if (!wereLanguagesCombined)
                         uploadedLocations.RemoveAt(i--);
                 }
@@ -274,20 +274,20 @@ namespace HappyTravel.LocationUpdater.Services
         }
 
 
-        private List<(string dataProvider, DataProviders enumValue)> GetDataProviders(IEnumerable<string> dataProviders)
+        private List<(string supplier, Suppliers enumValue)> GetSuppliers(IEnumerable<string> suppliers)
         {
-            var dataProvidersNameAndValue = new List<(string providerName, DataProviders enumValue)>();
-            foreach (var dataProvider in dataProviders)
+            var supplierNameAndValue = new List<(string providerName, Suppliers enumValue)>();
+            foreach (var supplier in suppliers)
             {
-                var dataProviderEnumName = new string(Char.ToUpper(dataProvider[0]) + dataProvider.Substring(1));
+                var supplierEnumName = new string(Char.ToUpper(supplier[0]) + supplier.Substring(1));
 
-                if (!Enum.TryParse<DataProviders>(dataProviderEnumName, out var dataProviderEnumValue))
+                if (!Enum.TryParse<Suppliers>(supplierEnumName, out var supplierEnumValue))
                     continue;
 
-                dataProvidersNameAndValue.Add((dataProvider, dataProviderEnumValue));
+                supplierNameAndValue.Add((supplier, supplierEnumValue));
             }
 
-            return dataProvidersNameAndValue;
+            return supplierNameAndValue;
         }
 
 
@@ -348,7 +348,7 @@ namespace HappyTravel.LocationUpdater.Services
         }
 
 
-        private const int TakeFromConnectorLocationsCount = 10000;
+        private const int TakeFromConnectorLocationsCount = 3000;
         private const string GetLocationsModifiedDateRequestPath = "/en/api/1.0/locations/last-modified-date";
         private const string UploadLocationsRequestPath = "/en/api/1.0/locations";
         private const string DefaultLanguageCode = "en";

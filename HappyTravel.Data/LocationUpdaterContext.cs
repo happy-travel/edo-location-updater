@@ -34,7 +34,7 @@ namespace HappyTravel.Data
                 typeBuilder.Property(l => l.Distance);
                 typeBuilder.Property(l => l.Source);
                 typeBuilder.Property(l => l.Type);
-                typeBuilder.Property(l => l.DataProviders).HasColumnType("jsonb");
+                typeBuilder.Property(l => l.Suppliers).HasColumnType("jsonb");
             });
         }
 

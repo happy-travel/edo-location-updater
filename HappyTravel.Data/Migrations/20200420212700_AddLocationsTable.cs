@@ -24,7 +24,7 @@ namespace HappyTravel.Data.Migrations
                     Name = table.Column<string>(type: "jsonb", nullable: true),
                     Source = table.Column<int>(nullable: false),
                     Type = table.Column<int>(nullable: false),
-                    DataProviders = table.Column<List<DataProviders>>(type: "jsonb", nullable: true, defaultValueSql: "'[]'::jsonb")
+                    DataProviders = table.Column<List<Suppliers>>(type: "jsonb", nullable: true, defaultValueSql: "'[]'::jsonb")
                 },
                 constraints: table =>
                 {

@@ -33,11 +33,6 @@ namespace HappyTravel.Data.Migrations
                     b.Property<string>("Country")
                         .HasColumnType("jsonb");
 
-                    b.Property<List<DataProviders>>("DataProviders")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("jsonb")
-                        .HasDefaultValueSql("'[]'::jsonb");
-
                     b.Property<int>("Distance")
                         .HasColumnType("integer");
 
@@ -49,6 +44,9 @@ namespace HappyTravel.Data.Migrations
 
                     b.Property<int>("Source")
                         .HasColumnType("integer");
+
+                    b.Property<List<Suppliers>>("Suppliers")
+                        .HasColumnType("jsonb");
 
                     b.Property<int>("Type")
                         .HasColumnType("integer");

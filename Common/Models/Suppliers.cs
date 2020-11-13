@@ -1,6 +1,6 @@
 ﻿namespace Common.Models
 {
-    public enum DataProviders
+    public enum Suppliers
     {
         Unknown = 0,
         NetstormingConnector = 1,
