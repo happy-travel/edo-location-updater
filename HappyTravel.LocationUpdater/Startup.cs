@@ -51,7 +51,7 @@ namespace HappyTravel.LocationUpdater
                 .ToDictionary(i => i.Key, j => j.Value);
 
             IEnumerable<string> enabledSuppliers;
-            var supplierSettingsFromEnvironment = Environment.GetEnvironmentVariable("DATA_PROVIDERS");
+            var supplierSettingsFromEnvironment = Environment.GetEnvironmentVariable("SUPPLIERS");
             if (supplierSettingsFromEnvironment != null)
             {
                 enabledSuppliers = supplierSettingsFromEnvironment.Split(';').Select(i => i.Trim());
@@ -138,7 +138,7 @@ namespace HappyTravel.LocationUpdater
         private IServiceCollection AddConnectorsHttpClients(IServiceCollection services,
             Dictionary<string, string> supplierPaths, IEnumerable<string> enabledConnectors)
         {
-            foreach (var (supplierKey, basePath) in supplierPaths.Where(kv => enabledConnectors.Contains(kv.Key)))
+            foreach (var (supplierKey, basePath) in supplierPaths)
             {
                 services.AddHttpClient(supplierKey, client =>
                     {
@@ -154,8 +154,9 @@ namespace HappyTravel.LocationUpdater
         }
 
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, LocationUpdaterContext context)
         {
+            context.Database.Migrate();
             app.UseHealthChecks("/health");
         }
 
