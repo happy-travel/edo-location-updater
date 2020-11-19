@@ -276,7 +276,7 @@ namespace HappyTravel.LocationUpdater.Services
 
         private List<(string supplier, Suppliers enumValue)> GetSuppliers(IEnumerable<string> suppliers)
         {
-            var supplierNameAndValue = new List<(string providerName, Suppliers enumValue)>();
+            var supplierNameAndValue = new List<(string supplierName, Suppliers enumValue)>();
             foreach (var supplier in suppliers)
             {
                 var supplierEnumName = new string(Char.ToUpper(supplier[0]) + supplier.Substring(1));

@@ -6,6 +6,7 @@
         NetstormingConnector = 1,
         Illusions = 2,
         Direct = 3,
-        Etg = 4
+        Etg = 4,
+        Rakuten = 5
     }
 }
