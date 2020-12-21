@@ -33,8 +33,6 @@ namespace HappyTravel.LocationUpdater
             };
             JsonConvert.DefaultSettings = () => serializationSettings;
 
-            Dictionary<string, string> supplierPaths = null;
-
             using var vaultClient = StartupHelper.CreateVaultClient(Configuration);
 
             vaultClient.Login(GetFromEnvironment("Vault:Token")).Wait();
@@ -43,10 +41,10 @@ namespace HappyTravel.LocationUpdater
             var clientSecret = jobsSettings[Configuration["Identity:Secret"]];
 
             var edoSettings = vaultClient.Get(Configuration["Edo:EdoOptions"]).Result;
-            string authorityUrl = edoSettings[Configuration["Identity:Authority"]];
-            string edoApiUrl = edoSettings[Configuration["Edo:Api"]];
+            var authorityUrl = edoSettings[Configuration["Identity:Authority"]];
+            var edoApiUrl = edoSettings[Configuration["Edo:Api"]];
 
-            supplierPaths = vaultClient.Get(Configuration["Suppliers:Paths"]).Result
+            var supplierPaths = vaultClient.Get(Configuration["Suppliers:Paths"]).Result
                 .Where(i => i.Key != "enabledConnectors")
                 .ToDictionary(i => i.Key, j => j.Value);
 
@@ -87,9 +85,7 @@ namespace HappyTravel.LocationUpdater
 
                 var disableCachingSetting = Environment.GetEnvironmentVariable("DISABLE_TOKEN_CACHE");
 
-                options.IsCachingDisabled = bool.TryParse(disableCachingSetting, out var disableCache)
-                    ? disableCache
-                    : false;
+                options.IsCachingDisabled = bool.TryParse(disableCachingSetting, out var disableCache) && disableCache;
             });
 
             services.AddHttpClient(HttpClientNames.Identity, client =>
@@ -107,7 +103,7 @@ namespace HappyTravel.LocationUpdater
                 .AddPolicyHandler(HttpClientPolicies.GetStandardRetryPolicy())
                 .AddHttpMessageHandler<ProtectedApiBearerTokenHandler>();
 
-            AddConnectorsHttpClients(services, supplierPaths, enabledSuppliers);
+            AddConnectorsHttpClients(services, supplierPaths);
 
             services.Configure<UpdaterOptions>(o =>
             {
@@ -135,8 +131,15 @@ namespace HappyTravel.LocationUpdater
         }
 
 
-        private IServiceCollection AddConnectorsHttpClients(IServiceCollection services,
-            Dictionary<string, string> supplierPaths, IEnumerable<string> enabledConnectors)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, LocationUpdaterContext context)
+        {
+            context.Database.Migrate();
+            app.UseHealthChecks("/health");
+        }
+
+
+        private static void AddConnectorsHttpClients(IServiceCollection services,
+            Dictionary<string, string> supplierPaths)
         {
             foreach (var (supplierKey, basePath) in supplierPaths)
             {
@@ -149,15 +152,6 @@ namespace HappyTravel.LocationUpdater
                     .AddPolicyHandler(HttpClientPolicies.GetStandardRetryPolicy())
                     .AddHttpMessageHandler<ProtectedApiBearerTokenHandler>();
             }
-
-            return services;
-        }
-
-
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, LocationUpdaterContext context)
-        {
-            context.Database.Migrate();
-            app.UseHealthChecks("/health");
         }
 
 
