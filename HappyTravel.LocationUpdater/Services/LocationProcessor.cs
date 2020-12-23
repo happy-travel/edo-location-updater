@@ -50,7 +50,7 @@ namespace HappyTravel.LocationUpdater.Services
                 }
                 case LocationTypes.Unknown:
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new ArgumentOutOfRangeException(nameof(location));
             }
         }
     }

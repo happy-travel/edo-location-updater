@@ -210,11 +210,11 @@ namespace HappyTravel.LocationUpdater.Services
             }
 
 
-            string SetBracketsIfEmpty(string value) => string.IsNullOrEmpty(value) ? "{}" : value;
+            static string SetBracketsIfEmpty(string value) => string.IsNullOrEmpty(value) ? "{}" : value;
         }
 
 
-        private bool CombineFieldsWithLanguageIfNeeded(Location original, Location update)
+        private static bool CombineFieldsWithLanguageIfNeeded(Location original, Location update)
         {
             var wereCombined = false;
 
@@ -274,12 +274,12 @@ namespace HappyTravel.LocationUpdater.Services
         }
 
 
-        private List<(string supplier, Suppliers enumValue)> GetSuppliers(IEnumerable<string> suppliers)
+        private static List<(string supplier, Suppliers enumValue)> GetSuppliers(IEnumerable<string> suppliers)
         {
             var supplierNameAndValue = new List<(string supplierName, Suppliers enumValue)>();
             foreach (var supplier in suppliers)
             {
-                var supplierEnumName = new string(Char.ToUpper(supplier[0]) + supplier.Substring(1));
+                var supplierEnumName = new string(char.ToUpper(supplier[0]) + supplier[1..]);
 
                 if (!Enum.TryParse<Suppliers>(supplierEnumName, out var supplierEnumValue))
                     continue;
@@ -359,7 +359,7 @@ namespace HappyTravel.LocationUpdater.Services
         private readonly JsonSerializer _serializer;
         private readonly IServiceScopeFactory _serviceScopeFactory;
 
-        private readonly List<LocationTypes> _uploadedLocationTypes = new List<LocationTypes>
+        private readonly List<LocationTypes> _uploadedLocationTypes = new()
         {
             LocationTypes.Location,
             LocationTypes.Accommodation
