@@ -8,10 +8,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using HappyTravel.EdoLocationUpdater.Common.Infrastructure;
 using HappyTravel.EdoLocationUpdater.Common.Models;
-using HappyTravel.Data.Models;
+using HappyTravel.EdoLocationUpdater.Data.Models;
 using HappyTravel.EdoContracts.GeoData.Enums;
-using HappyTravel.LocationUpdater.Infrastructure.Extensions;
-using HappyTravel.LocationUpdater.Infrastructure.JsonConverters;
+using HappyTravel.EdoLocationUpdater.Updater.Infrastructure.Extensions;
+using HappyTravel.EdoLocationUpdater.Updater.Infrastructure.JsonConverters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
-namespace HappyTravel.LocationUpdater.Services
+namespace HappyTravel.EdoLocationUpdater.Updater.Services
 {
     public class LocationUpdaterHostedService : BackgroundService
     {

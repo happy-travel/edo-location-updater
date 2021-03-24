@@ -1,4 +1,4 @@
-namespace HappyTravel.LocationUpdater.Infrastructure
+namespace HappyTravel.EdoLocationUpdater.Updater.Infrastructure
 {
     public class TokenRequestSettings
     {

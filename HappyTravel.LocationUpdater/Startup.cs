@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using HappyTravel.EdoLocationUpdater.Common;
-using HappyTravel.Data;
-using HappyTravel.LocationUpdater.Infrastructure;
-using HappyTravel.LocationUpdater.Services;
+using HappyTravel.EdoLocationUpdater.Data;
+using HappyTravel.EdoLocationUpdater.Updater.Infrastructure;
+using HappyTravel.EdoLocationUpdater.Updater.Services;
 using LocationNameNormalizer.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -14,7 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
-namespace HappyTravel.LocationUpdater
+namespace HappyTravel.EdoLocationUpdater.Updater
 {
     public class Startup
     {

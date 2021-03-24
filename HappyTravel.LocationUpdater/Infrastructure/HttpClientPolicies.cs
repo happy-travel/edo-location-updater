@@ -3,7 +3,7 @@ using System.Net.Http;
 using Polly;
 using Polly.Extensions.Http;
 
-namespace HappyTravel.LocationUpdater.Infrastructure
+namespace HappyTravel.EdoLocationUpdater.Updater.Infrastructure
 {
     internal static class HttpClientPolicies
     {

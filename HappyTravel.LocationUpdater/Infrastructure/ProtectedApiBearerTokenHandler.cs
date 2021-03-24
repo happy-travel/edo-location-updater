@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using IdentityModel.Client;
 
-namespace HappyTravel.LocationUpdater.Infrastructure
+namespace HappyTravel.EdoLocationUpdater.Updater.Infrastructure
 {
     public class ProtectedApiBearerTokenHandler : DelegatingHandler
     {

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 
-namespace HappyTravel.LocationUpdater
+namespace HappyTravel.EdoLocationUpdater.Updater
 {
     public class Program
     {

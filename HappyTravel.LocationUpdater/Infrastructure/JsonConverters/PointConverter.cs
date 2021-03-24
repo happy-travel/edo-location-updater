@@ -3,7 +3,7 @@ using NetTopologySuite.Geometries;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace HappyTravel.LocationUpdater.Infrastructure.JsonConverters
+namespace HappyTravel.EdoLocationUpdater.Updater.Infrastructure.JsonConverters
 {
     public class PointConverter : JsonConverter
     {

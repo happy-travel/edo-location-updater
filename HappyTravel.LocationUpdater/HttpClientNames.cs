@@ -1,4 +1,4 @@
-namespace HappyTravel.LocationUpdater
+namespace HappyTravel.EdoLocationUpdater.Updater
 {
     public static class HttpClientNames
     {

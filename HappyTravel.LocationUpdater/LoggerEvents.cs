@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace HappyTravel.LocationUpdater
+namespace HappyTravel.EdoLocationUpdater.Updater
 {
     internal static class LoggerEvents
     {

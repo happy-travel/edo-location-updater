@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using HappyTravel.Data.Models;
+using HappyTravel.EdoLocationUpdater.Data.Models;
 using HappyTravel.EdoContracts.GeoData.Enums;
 
-namespace HappyTravel.LocationUpdater.Services
+namespace HappyTravel.EdoLocationUpdater.Updater.Services
 {
     internal static class LocationProcessor
     {

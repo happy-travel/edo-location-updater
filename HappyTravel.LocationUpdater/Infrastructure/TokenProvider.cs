@@ -6,7 +6,7 @@ using IdentityModel.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace HappyTravel.LocationUpdater.Infrastructure
+namespace HappyTravel.EdoLocationUpdater.Updater.Infrastructure
 {
     public class TokenProvider
     {

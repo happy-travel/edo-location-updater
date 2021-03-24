@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace HappyTravel.LocationUpdater.Services
+namespace HappyTravel.EdoLocationUpdater.Updater.Services
 {
     public class UpdaterOptions
     {

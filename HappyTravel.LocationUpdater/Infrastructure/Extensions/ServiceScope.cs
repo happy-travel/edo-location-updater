@@ -1,7 +1,7 @@
-﻿using HappyTravel.Data;
+﻿using HappyTravel.EdoLocationUpdater.Data;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace HappyTravel.LocationUpdater.Infrastructure.Extensions
+namespace HappyTravel.EdoLocationUpdater.Updater.Infrastructure.Extensions
 {
     public static class ServiceScope
     {

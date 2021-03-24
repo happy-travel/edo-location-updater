@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace HappyTravel.LocationUpdater.Infrastructure
+namespace HappyTravel.EdoLocationUpdater.Updater.Infrastructure
 {
     internal static class ListHelper
     {
