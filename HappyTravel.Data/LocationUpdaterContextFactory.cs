@@ -1,11 +1,11 @@
 ﻿using System.IO;
 using System.Reflection;
-using Common;
+using HappyTravel.EdoLocationUpdater.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 
-namespace HappyTravel.Data
+namespace HappyTravel.EdoLocationUpdater.Data
 {
     public class LocationUpdaterContextFactory : IDesignTimeDbContextFactory<LocationUpdaterContext>
     {

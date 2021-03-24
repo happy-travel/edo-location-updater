@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
-using Common.Models;
+using HappyTravel.EdoLocationUpdater.Common.Models;
 using Microsoft.EntityFrameworkCore.Migrations;
 using NetTopologySuite.Geometries;
 
-namespace HappyTravel.Data.Migrations
+namespace HappyTravel.EdoLocationUpdater.Data.Migrations
 {
     public partial class AddLocationsTable : Migration
     {

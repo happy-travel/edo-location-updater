@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using Common.Models;
+﻿using System.Collections.Generic;
+using HappyTravel.EdoLocationUpdater.Common.Models;
 using HappyTravel.EdoContracts.GeoData.Enums;
 using HappyTravel.Geography;
 using NetTopologySuite.Geometries;
 using Newtonsoft.Json;
 
-namespace HappyTravel.Data.Models
+namespace HappyTravel.EdoLocationUpdater.Data.Models
 {
     public class Location
     {

@@ -1,10 +1,9 @@
 ﻿using System.Data;
 using System.Data.Common;
-using System.Threading.Tasks;
-using HappyTravel.Data.Models;
+using HappyTravel.EdoLocationUpdater.Data.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace HappyTravel.Data
+namespace HappyTravel.EdoLocationUpdater.Data
 {
     public class LocationUpdaterContext : DbContext
     {

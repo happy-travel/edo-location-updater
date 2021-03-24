@@ -1,4 +1,4 @@
-﻿namespace Common.Models
+﻿namespace HappyTravel.EdoLocationUpdater.Common.Models
 {
     public enum Suppliers
     {

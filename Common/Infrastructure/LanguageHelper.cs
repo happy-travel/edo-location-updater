@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace Common.Infrastructure
+namespace HappyTravel.EdoLocationUpdater.Common.Infrastructure
 {
     public static class LanguageHelper
     {

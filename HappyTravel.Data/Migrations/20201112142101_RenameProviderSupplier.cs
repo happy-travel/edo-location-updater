@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
-using Common.Models;
+using HappyTravel.EdoLocationUpdater.Common.Models;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace HappyTravel.Data.Migrations
+namespace HappyTravel.EdoLocationUpdater.Data.Migrations
 {
     public partial class RenameProviderSupplier : Migration
     {

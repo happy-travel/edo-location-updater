@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Common;
+using HappyTravel.EdoLocationUpdater.Common;
 using HappyTravel.Data;
 using HappyTravel.LocationUpdater.Infrastructure;
 using HappyTravel.LocationUpdater.Services;

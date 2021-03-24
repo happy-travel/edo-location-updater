@@ -2,11 +2,11 @@
 using HappyTravel.VaultClient;
 using Microsoft.Extensions.Configuration;
 
-namespace Common
+namespace HappyTravel.EdoLocationUpdater.Common
 {
     public static class StartupHelper
     {
-        public static VaultClient CreateVaultClient(IConfiguration configuration)
+        public static VaultClient.VaultClient CreateVaultClient(IConfiguration configuration)
         {
             var vaultOptions = new VaultOptions
             {
@@ -15,11 +15,11 @@ namespace Common
                 Role = configuration["Vault:Role"]
             };
             
-            return new VaultClient(vaultOptions);
+            return new VaultClient.VaultClient(vaultOptions);
         }
         
         
-        public static string GetDbConnectionString(VaultClient vaultClient, IConfiguration configuration)
+        public static string GetDbConnectionString(VaultClient.VaultClient vaultClient, IConfiguration configuration)
         {
             var connectionOptions = vaultClient.Get(configuration["Database:ConnectionOptions"]).Result;
             
