@@ -6,8 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Common\HappyTravel.EdoLocationUpdater.Common.csproj" />
-    <ProjectReference Include="..\HappyTravel.Data\HappyTravel.EdoLocationUpdater.Data.csproj" />
+    <ProjectReference Include="..\HappyTravel.EdoLocationUpdater.Common\HappyTravel.EdoLocationUpdater.Common.csproj" />
+    <ProjectReference Include="..\HappyTravel.EdoLocationUpdater.Data\HappyTravel.EdoLocationUpdater.Data.csproj" />
   </ItemGroup>
 
   <ItemGroup>

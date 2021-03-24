@@ -36,7 +36,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Common\HappyTravel.EdoLocationUpdater.Common.csproj" />
+      <ProjectReference Include="..\HappyTravel.EdoLocationUpdater.Common\HappyTravel.EdoLocationUpdater.Common.csproj" />
     </ItemGroup>
 
 </Project>
