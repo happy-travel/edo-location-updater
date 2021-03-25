@@ -52,12 +52,12 @@ namespace HappyTravel.EdoLocationUpdater.Updater
             var supplierSettingsFromEnvironment = Environment.GetEnvironmentVariable("SUPPLIERS");
             if (supplierSettingsFromEnvironment != null)
             {
-                enabledSuppliers = supplierSettingsFromEnvironment.Split(';').Select(i => i.Trim());
+                enabledSuppliers = supplierSettingsFromEnvironment.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             }
             else
             {
                 var updaterOptions = vaultClient.Get(Configuration["Suppliers:Options"]).Result;
-                enabledSuppliers = updaterOptions["enabled"].Split(';').Select(i => i.Trim());
+                enabledSuppliers = updaterOptions["enabled"].Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             }
             
 
