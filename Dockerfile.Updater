@@ -13,17 +13,17 @@ WORKDIR /src/app
 
 COPY . .
 
-RUN dotnet restore HappyTravel.LocationUpdater
+RUN dotnet restore HappyTravel.EdoLocationUpdater.Updater
 
-RUN dotnet build -c Release HappyTravel.LocationUpdater
+RUN dotnet build -c Release HappyTravel.EdoLocationUpdater.Updater
 
 FROM build AS publish
 
-RUN dotnet publish -c Release -o /app/release HappyTravel.LocationUpdater
+RUN dotnet publish -c Release -o /app/release HappyTravel.EdoLocationUpdater.Updater
 
 FROM base AS final
 
 WORKDIR /app
 COPY --from=publish /app/release .
 
-ENTRYPOINT ["dotnet", "HappyTravel.LocationUpdater.dll"]
+ENTRYPOINT ["dotnet", "HappyTravel.EdoLocationUpdater.Updater.dll"]
