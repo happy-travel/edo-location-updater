@@ -17,8 +17,8 @@ namespace HappyTravel.EdoLocationUpdater.Updater.Services
         public static List<Location> ProcessLocations(List<Location> locations)
         {
             var processedLocations = new List<Location>(locations.Count);
-            for (var i = 0; i < locations.Count - 1; i++)
-                processedLocations.Add(ProcessLocation(locations[i]));
+            foreach (var location in locations)
+                processedLocations.Add(ProcessLocation(location));
 
             return processedLocations;
         }
