@@ -8,7 +8,7 @@ WORKDIR /src
 
 COPY . .
 
-WORKDIR /src/HappyTravel.Data
+WORKDIR /src/HappyTravel.EdoLocationUpdater.Data
 
 RUN dotnet tool restore
 
